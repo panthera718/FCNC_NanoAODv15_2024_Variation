@@ -1,0 +1,194 @@
+# Branch selection for the 2024 exact-3-lepton trigger-SF NTuples.
+#
+# This file is intentionally more inclusive than the strict minimum.  It keeps:
+#   - event identifiers for duplicate removal/checks,
+#   - trigger booleans for numerator/denominator and optional trigger groups,
+#   - FCNCTriLepton output branches needed for exact-3l+Z selection,
+#   - lepton kinematics needed for 1D and 2D trigger-SF maps,
+#   - b-jet/event-shape branches for optional closure checks.
+#
+# Install as, for example:
+#   $CMSSW_BASE/src/TZWi/TopAnalysis/data/branchsel_trigSF_2024.txt
+# and run 01_prod_trigsf_ntuple_2024.sh with:
+#   TRIGSF_BRANCHSEL=$CMSSW_BASE/src/TZWi/TopAnalysis/data/branchsel_trigSF_2024.txt
+
+# Start from a small trigger-SF NTuple.
+drop *
+
+# Event identity and bookkeeping.  These are needed for data duplicate removal
+# when more than one reference PD is used, e.g. MET plus JetMET.
+keep run
+keep luminosityBlock
+keep event
+keep PV_npvsGood
+
+# Optional MC weights.  The default trigger-SF script can run unweighted, but
+# these are useful if you later decide to compute a luminosity-weighted MC
+# efficiency or compare weighted/unweighted results.
+keep genWeight
+keep LHEWeight_originalXWGTUP
+keep nLHEPdfWeight
+keep LHEPdfWeight
+keep nLHEScaleWeight
+keep LHEScaleWeight
+keep nPSWeight
+keep PSWeight
+keep Pileup_nTrueInt
+keep puWeight
+keep puWeightUp
+keep puWeightDown
+
+# Event filter branch produced by flags_2024.
+keep Flag
+
+# Trigger-SF numerator/denominator booleans.
+keep HLT_analysis
+keep HLT_reference
+
+# Optional diagnostic trigger groups, written only when TRIGSF_SAVE_GROUPS=1.
+keep HLT_group_e
+keep HLT_group_ee
+keep HLT_group_eee
+keep HLT_group_mu
+keep HLT_group_mumu
+keep HLT_group_mumumu
+keep HLT_group_emu
+keep HLT_group_mixed3l
+
+# Final trigger-SF offline cut step.
+keep CutStep
+
+# Main 3-lepton kinematics from FCNCTriLepton.
+keep Lepton1_pt
+keep Lepton1_eta
+keep Lepton1_phi
+keep Lepton1_mass
+keep Lepton1_pdgId
+keep Lepton1_PFIso
+keep Lepton1_jetPtRatio
+keep Lepton1_isTight
+keep Lepton1_isFake
+keep Lepton1_mvaTOP
+keep Lepton1_Jet_pt
+keep Lepton1_Jet_eta
+keep Lepton1_Jet_phi
+keep Lepton1_Jet_mass
+keep Lepton1_jetBTagDeepFlavor
+
+keep Lepton2_pt
+keep Lepton2_eta
+keep Lepton2_phi
+keep Lepton2_mass
+keep Lepton2_pdgId
+keep Lepton2_PFIso
+keep Lepton2_jetPtRatio
+keep Lepton2_isTight
+keep Lepton2_isFake
+keep Lepton2_mvaTOP
+keep Lepton2_Jet_pt
+keep Lepton2_Jet_eta
+keep Lepton2_Jet_phi
+keep Lepton2_Jet_mass
+keep Lepton2_jetBTagDeepFlavor
+
+keep Lepton3_pt
+keep Lepton3_eta
+keep Lepton3_phi
+keep Lepton3_mass
+keep Lepton3_pdgId
+keep Lepton3_PFIso
+keep Lepton3_jetPtRatio
+keep Lepton3_isTight
+keep Lepton3_isFake
+keep Lepton3_mvaTOP
+keep Lepton3_Jet_pt
+keep Lepton3_Jet_eta
+keep Lepton3_Jet_phi
+keep Lepton3_Jet_mass
+keep Lepton3_jetBTagDeepFlavor
+
+# pT-sorted leptons.  These are the default variables for the 2D maps:
+#   x = ptsortLepton1_pt, y = ptsortLepton2_pt
+#   x = ptsortLepton1_pt, y = |ptsortLepton1_eta|
+keep ptsortLepton1_pt
+keep ptsortLepton1_eta
+keep ptsortLepton1_phi
+keep ptsortLepton2_pt
+keep ptsortLepton2_eta
+keep ptsortLepton2_phi
+keep ptsortLepton3_pt
+keep ptsortLepton3_eta
+keep ptsortLepton3_phi
+
+# Derived trigger-SF variables written by trigSFVariables_2024.py.
+# These make the 2D script independent of the internal FCNCTriLepton ordering.
+keep trigSF2D_leadLep_pt
+keep trigSF2D_subleadLep_pt
+keep trigSF2D_trailLep_pt
+keep trigSF2D_leadLep_absEta
+keep trigSF2D_subleadLep_absEta
+keep trigSF2D_trailLep_absEta
+keep trigSF2D_leadEl_pt
+keep trigSF2D_subleadEl_pt
+keep trigSF2D_leadEl_absEta
+keep trigSF2D_subleadEl_absEta
+keep trigSF2D_leadMu_pt
+keep trigSF2D_subleadMu_pt
+keep trigSF2D_leadMu_absEta
+keep trigSF2D_subleadMu_absEta
+
+# Z/W/top-related quantities and multiplicities useful for validation/closure.
+keep Z_pt
+keep Z_eta
+keep Z_phi
+keep Z_mass
+keep Z_charge
+keep LeadingLepton_pt
+keep LeadingElectron_pt
+keep LeadingElectron_eta
+keep LeadingElectron_phi
+keep LeadingElectron_mass
+keep LeadingMuon_pt
+keep LeadingMuon_eta
+keep LeadingMuon_phi
+keep LeadingMuon_mass
+keep MET_pt
+keep MET_phi
+keep W_MT
+keep TriLepton_mass
+keep TriLepton_pt
+keep TriLepton_WleptonZdPhi
+keep TriLepton_WleptonZdR
+keep nVetoLepton
+keep nGoodLepton
+keep nNPLepton
+keep GoodLeptonCode
+keep nGoodElectron
+keep nGoodMuon
+keep nGoodTau
+keep nNPTau
+
+# Jet and b-tag branches for optional nBjet closure checks.
+keep nGoodJet
+keep nBjet
+keep nCjet
+keep nUDSjet
+keep GoodJet_index
+keep GoodJet_pt
+keep GoodJet_eta
+keep GoodJet_phi
+keep GoodJet_mass
+keep GoodJet_DeepFlavB
+keep GoodJet_DeepFlavCvL
+keep GoodJet_DeepFlavCvB
+keep GoodJet_DeepFlavQG
+keep GoodJet_hadronFlavour
+keep ptsortGoodJet1_pt
+keep ptsortGoodJet1_eta
+keep ptsortGoodJet1_phi
+keep ptsortGoodJet2_pt
+keep ptsortGoodJet2_eta
+keep ptsortGoodJet2_phi
+keep ptsortGoodJet3_pt
+keep ptsortGoodJet3_eta
+keep ptsortGoodJet3_phi

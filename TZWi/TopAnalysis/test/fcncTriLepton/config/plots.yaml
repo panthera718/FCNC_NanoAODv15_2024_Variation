@@ -1,0 +1,63 @@
+lumi: [1.000]
+#lumi: [0.417, 7.653, 8.740] #UltraLegacy 2016 postVFP
+#lumi: [5.746,2.573,4.242,4.025,3.105,7.576,8.651] #2016
+#lumi: [4.77, 9.58, 4.22, 9.26, 13.46] #2017
+
+canvasStyles: ## Styling rules, later item overrides earlier ones
+  - substr: '' # null string matches to everything
+    logy: false
+  - substr: 'S5'
+    logy: false
+  - substr: 'S6'
+    logy: false
+
+histStyles: # Styling rules, later item overrides earlier ones
+  - title: Nonprompt
+    color: "kRed-6"
+  - title: TT
+    color: "kRed"
+  - title: ttZ
+    color: "kYellow"
+  - title: ttH
+    color: "kBlue-6"
+  - title: tZq
+    color: "kBlue"
+  - title: tWZ
+    color: "kYellow-6"
+  - title: WZ
+    color: "kTeal"
+  - title: ZZ
+    color: "kGreen-6"
+  - title: WW
+    color: "kOrange+7"
+  - title: VVV
+    color: "kMagenta-6"
+  - title: Xgamma
+    color: "kCyan-5"
+#  - title: SingleT
+#    color: "kPink-8"
+
+#######
+#  - title: STZut
+#    color: "kGreen-7"
+#  - title: STZct
+#    color: "kBlue-9"
+#  - title: TTZut
+#    color: "kGreen+3"
+#  - title: TTZct
+#    color: "kBlue+2"
+########
+
+stackorders: ## MC samples to stack
+  - Nonprompt
+  - TT
+  - ttZ
+  - ttH
+  - tZq
+  - tWZ
+  - WZ
+  - ZZ
+  - WW
+  - VVV
+  - Xgamma
+#  - SingleT

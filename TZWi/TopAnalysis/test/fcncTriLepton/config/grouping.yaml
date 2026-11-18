@@ -1,0 +1,157 @@
+processes:
+    DataElElEl:
+        title: "Data"
+        modes: ["ElElEl"]
+        cut: "HLT"
+        datasets:
+            - Run2024.EGamma
+            - Run2024.Muon
+            - Run2024.MuonEG
+    DataMuMuMu:
+        title: "Data"
+        modes: ["MuMuMu"]
+        cut: "HLT"
+        datasets:
+            - Run2024.EGamma
+            - Run2024.Muon
+            - Run2024.MuonEG
+    DataElMuMu:
+        title: "Data"
+        modes: ["ElMuMu"]
+        cut: "HLT"
+        datasets:
+            - Run2024.EGamma
+            - Run2024.Muon
+            - Run2024.MuonEG
+    DataMuElEl:
+        title: "Data"
+        modes: ["MuElEl"]
+        cut: "HLT"
+        datasets:
+            - Run2024.EGamma
+            - Run2024.Muon
+            - Run2024.MuonEG
+
+    DataNPLElElEl:
+        title: "Data"
+        modes: ["NPLElElEl"]
+        FRweight: "FakeRateWeight"
+        cut: "HLT"
+        datasets:
+            - Run2024.EGamma
+            - Run2024.Muon
+            - Run2024.MuonEG
+    DataNPLMuMuMu:
+        title: "Data"
+        modes: ["NPLMuMuMu"]
+        FRweight: "FakeRateWeight"
+        cut: "HLT"
+        datasets:
+            - Run2024.EGamma
+            - Run2024.Muon
+            - Run2024.MuonEG
+    DataNPLElMuMu:
+        title: "Data"
+        modes: ["NPLElMuMu"]
+        FRweight: "FakeRateWeight"
+        cut: "HLT"
+        datasets:
+            - Run2024.EGamma
+            - Run2024.Muon
+            - Run2024.MuonEG
+    DataNPLMuElEl:
+        title: "Data"
+        modes: ["NPLMuElEl"]
+        FRweight: "FakeRateWeight"
+        cut: "HLT"
+        datasets:
+            - Run2024.EGamma
+            - Run2024.Muon
+            - Run2024.MuonEG
+
+    ttZ:
+        title: "ttZ"
+        longTitle: "t#bar{t}Z"
+        weight: "genWeight*Electron_SF*Muon_SF*BtagWeight"
+        FRweight: "genWeight*Electron_SF*Muon_SF*BtagWeight*FakeRateWeight"
+        cut: "HLT"
+        datasets:
+            - MC2024.TTLL_Bin-MLL-4to50
+            - MC2024.TTLL_Bin-MLL-50
+    tZq:
+        title: "tZq"
+        weight: "genWeight*Electron_SF*Muon_SF*BtagWeight"
+        FRweight: "genWeight*Electron_SF*Muon_SF*BtagWeight*FakeRateWeight"
+        cut: "HLT"
+        datasets:
+            - MC2024.TZQB-Zto2L-4FS_Bin-MLL-30
+    WW:
+        title: "WW"
+        weight: "genWeight*Electron_SF*Muon_SF*BtagWeight"
+        FRweight: "genWeight*Electron_SF*Muon_SF*BtagWeight*FakeRateWeight"
+        cut: "HLT"
+        datasets:
+            - MC2024.WWto2L2Nu
+    WZ:
+        title: "WZ"
+        weight: "genWeight*Electron_SF*Muon_SF*BtagWeight"
+        FRweight: "genWeight*Electron_SF*Muon_SF*BtagWeight*FakeRateWeight"
+        cut: "HLT"
+        datasets:
+            - MC2024.WZto3LNu
+            - MC2024.WZto2L2Q
+    ZZ:
+        title: "ZZ"
+        weight: "genWeight*Electron_SF*Muon_SF*BtagWeight"
+        FRweight: "genWeight*Electron_SF*Muon_SF*BtagWeight*FakeRateWeight"
+        cut: "HLT"
+        datasets:
+            - MC2024.ZZto4L
+            - MC2024.ZZto2L2Q
+            - MC2024.ZZto2L2Nu
+    VVV:
+        title: "VVV"
+        weight: "genWeight*Electron_SF*Muon_SF*BtagWeight"
+        FRweight: "genWeight*Electron_SF*Muon_SF*BtagWeight*FakeRateWeight"
+        cut: "HLT"
+        datasets:
+            - MC2024.WWW
+            - MC2024.WWZ
+            - MC2024.WZZ
+            - MC2024.ZZZ
+    ttH:
+        title: "ttH"
+        longTitle: "t#bar{t}H"
+        weight: "genWeight*Electron_SF*Muon_SF*BtagWeight"
+        FRweight: "genWeight*Electron_SF*Muon_SF*BtagWeight*FakeRateWeight"
+        cut: "HLT"
+        datasets:
+            - MC2024.TTH-HtoNon2B_Par-M-125
+    TT:
+        title: "TT"
+        longTitle: "t#bar{t}"
+        weight: "genWeight*Electron_SF*Muon_SF*BtagWeight"
+        FRweight: "genWeight*Electron_SF*Muon_SF*BtagWeight*FakeRateWeight"
+        cut: "HLT"
+        datasets:
+            - MC2024.TTto2L2Nu
+    ttZ:
+        title: "ttZ"
+        longTitle: "t#bar{t}"
+        weight: "genWeight*Electron_SF*Muon_SF*BtagWeight"
+        FRweight: "genWeight*Electron_SF*Muon_SF*BtagWeight*FakeRateWeight"
+        cut: "HLT"
+        datasets:
+            - MC2024.TWZ-Tto2Q-WtoLNu-Zto2L-DR1
+            - MC2024.TWZ-TtoLNu-Wto2Q-Zto2L-DR1
+            - MC2024.TWZ-TtoLNu-WtoLNu-Zto2L-DR1
+    Xgamma:
+        title: "Xgamma"
+        longTitle: "X#gamma"
+        weight: "genWeight*Electron_SF*Muon_SF*BtagWeight"
+        FRweight: "genWeight*Electron_SF*Muon_SF*BtagWeight*FakeRateWeight"
+        cut: "HLT"
+        datasets:
+            - MC2024.WGtoLNuG-1Jets
+            - MC2024.DYGto2LG-1Jets_Bin-MLL-4to50
+            - MC2024.DYGto2LG-1Jets_Bin-MLL-50
