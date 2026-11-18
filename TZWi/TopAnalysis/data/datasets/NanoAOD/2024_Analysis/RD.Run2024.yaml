@@ -1,0 +1,163 @@
+dataset:
+    Run2024.EGamma:
+        /EGamma0/Run2024C-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024C/EGamma0/NANOAOD/MINIv6NANOv15-v1/2540000
+        /EGamma0/Run2024D-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024D/EGamma0/NANOAOD/MINIv6NANOv15-v1/110000
+        - /store/data/Run2024D/EGamma0/NANOAOD/MINIv6NANOv15-v1/2530000
+        /EGamma0/Run2024E-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024E/EGamma0/NANOAOD/MINIv6NANOv15-v1/120000
+        - /store/data/Run2024E/EGamma0/NANOAOD/MINIv6NANOv15-v1/110000
+        - /store/data/Run2024E/EGamma0/NANOAOD/MINIv6NANOv15-v1/2530000
+        - /store/data/Run2024E/EGamma0/NANOAOD/MINIv6NANOv15-v1/2520000
+        /EGamma0/Run2024F-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024F/EGamma0/NANOAOD/MINIv6NANOv15-v1/120000
+        - /store/data/Run2024F/EGamma0/NANOAOD/MINIv6NANOv15-v1/2530000
+        - /store/data/Run2024F/EGamma0/NANOAOD/MINIv6NANOv15-v1/110000
+        - /store/data/Run2024F/EGamma0/NANOAOD/MINIv6NANOv15-v1/90000
+        - /store/data/Run2024F/EGamma0/NANOAOD/MINIv6NANOv15-v1/2520000
+        /EGamma0/Run2024G-MINIv6NANOv15-v2/NANOAOD:
+        - /store/data/Run2024G/EGamma0/NANOAOD/MINIv6NANOv15-v2/2530000
+        - /store/data/Run2024G/EGamma0/NANOAOD/MINIv6NANOv15-v2/2520000
+        - /store/data/Run2024G/EGamma0/NANOAOD/MINIv6NANOv15-v2/2810000
+        - /store/data/Run2024G/EGamma0/NANOAOD/MINIv6NANOv15-v2/120000
+        /EGamma0/Run2024H-MINIv6NANOv15-v2/NANOAOD:
+        - /store/data/Run2024H/EGamma0/NANOAOD/MINIv6NANOv15-v2/2530000
+        - /store/data/Run2024H/EGamma0/NANOAOD/MINIv6NANOv15-v2/100000
+        - /store/data/Run2024H/EGamma0/NANOAOD/MINIv6NANOv15-v2/2810000
+        - /store/data/Run2024H/EGamma0/NANOAOD/MINIv6NANOv15-v2/2520000
+        /EGamma0/Run2024I-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024I/EGamma0/NANOAOD/MINIv6NANOv15-v1/90000
+        - /store/data/Run2024I/EGamma0/NANOAOD/MINIv6NANOv15-v1/2530000
+        /EGamma0/Run2024I-MINIv6NANOv15_v2-v1/NANOAOD:
+        - /store/data/Run2024I/EGamma0/NANOAOD/MINIv6NANOv15_v2-v1/2540000
+        - /store/data/Run2024I/EGamma0/NANOAOD/MINIv6NANOv15_v2-v1/110000
+        /EGamma1/Run2024C-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024C/EGamma1/NANOAOD/MINIv6NANOv15-v1/2810000
+        - /store/data/Run2024C/EGamma1/NANOAOD/MINIv6NANOv15-v1/2520000
+        /EGamma1/Run2024D-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024D/EGamma1/NANOAOD/MINIv6NANOv15-v1/90000
+        - /store/data/Run2024D/EGamma1/NANOAOD/MINIv6NANOv15-v1/2540000
+        - /store/data/Run2024D/EGamma1/NANOAOD/MINIv6NANOv15-v1/2530000
+        /EGamma1/Run2024E-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024E/EGamma1/NANOAOD/MINIv6NANOv15-v1/2530000
+        - /store/data/Run2024E/EGamma1/NANOAOD/MINIv6NANOv15-v1/110000
+        /EGamma1/Run2024F-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024F/EGamma1/NANOAOD/MINIv6NANOv15-v1/2530000
+        - /store/data/Run2024F/EGamma1/NANOAOD/MINIv6NANOv15-v1/2540000
+        - /store/data/Run2024F/EGamma1/NANOAOD/MINIv6NANOv15-v1/120000
+        - /store/data/Run2024F/EGamma1/NANOAOD/MINIv6NANOv15-v1/110000
+        /EGamma1/Run2024G-MINIv6NANOv15-v2/NANOAOD:
+        - /store/data/Run2024G/EGamma1/NANOAOD/MINIv6NANOv15-v2/2810000
+        - /store/data/Run2024G/EGamma1/NANOAOD/MINIv6NANOv15-v2/100000
+        - /store/data/Run2024G/EGamma1/NANOAOD/MINIv6NANOv15-v2/2520000
+        - /store/data/Run2024G/EGamma1/NANOAOD/MINIv6NANOv15-v2/90000
+        - /store/data/Run2024G/EGamma1/NANOAOD/MINIv6NANOv15-v2/120000
+        /EGamma1/Run2024H-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024H/EGamma1/NANOAOD/MINIv6NANOv15-v1/2530000
+        - /store/data/Run2024H/EGamma1/NANOAOD/MINIv6NANOv15-v1/120000
+        - /store/data/Run2024H/EGamma1/NANOAOD/MINIv6NANOv15-v1/110000
+        /EGamma1/Run2024I-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024I/EGamma1/NANOAOD/MINIv6NANOv15-v1/110000
+        - /store/data/Run2024I/EGamma1/NANOAOD/MINIv6NANOv15-v1/910000
+        - /store/data/Run2024I/EGamma1/NANOAOD/MINIv6NANOv15-v1/90000
+        /EGamma1/Run2024I-MINIv6NANOv15_v2-v1/NANOAOD:
+        - /store/data/Run2024I/EGamma1/NANOAOD/MINIv6NANOv15_v2-v1/2540000
+        - /store/data/Run2024I/EGamma1/NANOAOD/MINIv6NANOv15_v2-v1/120000
+    Run2024.Muon:
+        /Muon0/Run2024C-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024C/Muon0/NANOAOD/MINIv6NANOv15-v1/2530000
+        /Muon0/Run2024D-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024D/Muon0/NANOAOD/MINIv6NANOv15-v1/2540000
+        - /store/data/Run2024D/Muon0/NANOAOD/MINIv6NANOv15-v1/110000
+        - /store/data/Run2024D/Muon0/NANOAOD/MINIv6NANOv15-v1/25410000
+        /Muon0/Run2024E-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024E/Muon0/NANOAOD/MINIv6NANOv15-v1/2520000
+        - /store/data/Run2024E/Muon0/NANOAOD/MINIv6NANOv15-v1/2810000
+        - /store/data/Run2024E/Muon0/NANOAOD/MINIv6NANOv15-v1/28110000
+        /Muon0/Run2024F-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024F/Muon0/NANOAOD/MINIv6NANOv15-v1/2540000
+        - /store/data/Run2024F/Muon0/NANOAOD/MINIv6NANOv15-v1/2530000
+        - /store/data/Run2024F/Muon0/NANOAOD/MINIv6NANOv15-v1/90000
+        - /store/data/Run2024F/Muon0/NANOAOD/MINIv6NANOv15-v1/120000
+        - /store/data/Run2024F/Muon0/NANOAOD/MINIv6NANOv15-v1/110000
+        - /store/data/Run2024F/Muon0/NANOAOD/MINIv6NANOv15-v1/25210000
+        - /store/data/Run2024F/Muon0/NANOAOD/MINIv6NANOv15-v1/2520000
+        /Muon0/Run2024G-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024G/Muon0/NANOAOD/MINIv6NANOv15-v1/2540000
+        - /store/data/Run2024G/Muon0/NANOAOD/MINIv6NANOv15-v1/2530000
+        - /store/data/Run2024G/Muon0/NANOAOD/MINIv6NANOv15-v1/90000
+        - /store/data/Run2024G/Muon0/NANOAOD/MINIv6NANOv15-v1/120000
+        - /store/data/Run2024G/Muon0/NANOAOD/MINIv6NANOv15-v1/110000
+        - /store/data/Run2024G/Muon0/NANOAOD/MINIv6NANOv15-v1/25210000
+        - /store/data/Run2024G/Muon0/NANOAOD/MINIv6NANOv15-v1/2520000
+        /Muon0/Run2024H-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024H/Muon0/NANOAOD/MINIv6NANOv15-v1/90000
+        - /store/data/Run2024H/Muon0/NANOAOD/MINIv6NANOv15-v1/2530000
+        /Muon0/Run2024I-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024I/Muon0/NANOAOD/MINIv6NANOv15-v1/2530000
+        - /store/data/Run2024I/Muon0/NANOAOD/MINIv6NANOv15-v1/90000
+        /Muon0/Run2024I-MINIv6NANOv15_v2-v1/NANOAOD:
+        - /store/data/Run2024I/Muon0/NANOAOD/MINIv6NANOv15_v2-v1/2530000
+        - /store/data/Run2024I/Muon0/NANOAOD/MINIv6NANOv15_v2-v1/2540000
+        - /store/data/Run2024I/Muon0/NANOAOD/MINIv6NANOv15_v2-v1/90000
+        - /store/data/Run2024I/Muon0/NANOAOD/MINIv6NANOv15_v2-v1/120000
+        - /store/data/Run2024I/Muon0/NANOAOD/MINIv6NANOv15_v2-v1/25310000
+        /Muon1/Run2024C-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024C/Muon1/NANOAOD/MINIv6NANOv15-v1/2540000
+        /Muon1/Run2024D-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024D/Muon1/NANOAOD/MINIv6NANOv15-v1/2540000
+        - /store/data/Run2024D/Muon1/NANOAOD/MINIv6NANOv15-v1/2530000
+        /Muon1/Run2024E-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024E/Muon1/NANOAOD/MINIv6NANOv15-v1/110000
+        /Muon1/Run2024F-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024F/Muon1/NANOAOD/MINIv6NANOv15-v1/2530000
+        - /store/data/Run2024F/Muon1/NANOAOD/MINIv6NANOv15-v1/2540000
+        /Muon1/Run2024G-MINIv6NANOv15-v2/NANOAOD:
+        - /store/data/Run2024G/Muon1/NANOAOD/MINIv6NANOv15-v2/2530000
+        - /store/data/Run2024G/Muon1/NANOAOD/MINIv6NANOv15-v2/2520000
+        - /store/data/Run2024G/Muon1/NANOAOD/MINIv6NANOv15-v2/100000
+        - /store/data/Run2024G/Muon1/NANOAOD/MINIv6NANOv15-v2/90000
+        - /store/data/Run2024G/Muon1/NANOAOD/MINIv6NANOv15-v2/2810000
+        - /store/data/Run2024G/Muon1/NANOAOD/MINIv6NANOv15-v2/2550000
+        /Muon1/Run2024H-MINIv6NANOv15-v2/NANOAOD:
+        - /store/data/Run2024H/Muon1/NANOAOD/MINIv6NANOv15-v2/2810000
+        - /store/data/Run2024H/Muon1/NANOAOD/MINIv6NANOv15-v2/2520000
+        - /store/data/Run2024H/Muon1/NANOAOD/MINIv6NANOv15-v2/90000
+        /Muon1/Run2024I-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024I/Muon1/NANOAOD/MINIv6NANOv15-v1/110000
+        - /store/data/Run2024I/Muon1/NANOAOD/MINIv6NANOv15-v1/2540000
+        /Muon1/Run2024I-MINIv6NANOv15_v2-v1/NANOAOD:
+        - /store/data/Run2024I/Muon1/NANOAOD/MINIv6NANOv15_v2-v1/90000
+    Run2024.MuonEG:
+        /MuonEG/Run2024C-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024C/MuonEG/NANOAOD/MINIv6NANOv15-v1/2530000
+        - /store/data/Run2024C/MuonEG/NANOAOD/MINIv6NANOv15-v1/2540000
+        /MuonEG/Run2024D-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024D/MuonEG/NANOAOD/MINIv6NANOv15-v1/2540000
+        - /store/data/Run2024D/MuonEG/NANOAOD/MINIv6NANOv15-v1/2530000
+        /MuonEG/Run2024E-MINIv6NANOv15-v1/NANOAOD:
+        - /store/data/Run2024E/MuonEG/NANOAOD/MINIv6NANOv15-v1/2540000
+        - /store/data/Run2024E/MuonEG/NANOAOD/MINIv6NANOv15-v1/2530000
+        /MuonEG/Run2024F-MINIv6NANOv15-v2/NANOAOD:
+        - /store/data/Run2024F/MuonEG/NANOAOD/MINIv6NANOv15-v2/2520000
+        - /store/data/Run2024F/MuonEG/NANOAOD/MINIv6NANOv15-v2/2530000
+        - /store/data/Run2024F/MuonEG/NANOAOD/MINIv6NANOv15-v2/90000
+        - /store/data/Run2024F/MuonEG/NANOAOD/MINIv6NANOv15-v2/2810000
+        /MuonEG/Run2024G-MINIv6NANOv15-v3/NANOAOD:
+        - /store/data/Run2024G/MuonEG/NANOAOD/MINIv6NANOv15-v3/2520000
+        - /store/data/Run2024G/MuonEG/NANOAOD/MINIv6NANOv15-v3/2810000
+        - /store/data/Run2024G/MuonEG/NANOAOD/MINIv6NANOv15-v3/90000
+        /MuonEG/Run2024H-MINIv6NANOv15-v2/NANOAOD:
+        - /store/data/Run2024H/MuonEG/NANOAOD/MINIv6NANOv15-v2/2530000
+        - /store/data/Run2024H/MuonEG/NANOAOD/MINIv6NANOv15-v2/2520000
+        - /store/data/Run2024H/MuonEG/NANOAOD/MINIv6NANOv15-v2/2810000
+        /MuonEG/Run2024I-MINIv6NANOv15-v2/NANOAOD:
+        - /store/data/Run2024I/MuonEG/NANOAOD/MINIv6NANOv15-v2/2530000
+        - /store/data/Run2024I/MuonEG/NANOAOD/MINIv6NANOv15-v2/2520000
+        - /store/data/Run2024I/MuonEG/NANOAOD/MINIv6NANOv15-v2/90000
+        - /store/data/Run2024I/MuonEG/NANOAOD/MINIv6NANOv15-v2/100000
+        - /store/data/Run2024I/MuonEG/NANOAOD/MINIv6NANOv15-v2/2810000
+        /MuonEG/Run2024I-MINIv6NANOv15_v2-v2/NANOAOD:
+        - /store/data/Run2024I/MuonEG/NANOAOD/MINIv6NANOv15_v2-v2/2520000
+        - /store/data/Run2024I/MuonEG/NANOAOD/MINIv6NANOv15_v2-v2/2810000

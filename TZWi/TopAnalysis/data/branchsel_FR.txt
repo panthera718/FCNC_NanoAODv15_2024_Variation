@@ -1,0 +1,21 @@
+# Branch selection for JetMET fake-rate NTuple output.
+# Syntax note: keep/drop use ROOT wildcard patterns, not regular expressions.
+# Therefore use FR*, not ^FR.*. For regex syntax, use keepmatch/dropmatch.
+
+# Start from a minimal output tree.
+drop *
+
+# Fake-rate branches created by promptMVAFakeRateNtupleProducer_Run3.py
+keep FR*
+
+# Event-level fake-rate bookkeeping branches created by the producer
+keep nLooseLepton
+keep nTightLepton
+keep nFailLep
+keep frWeightSign
+keep eventWeight
+keep run
+keep luminosityBlock
+keep event
+keep PuppiMET_pt_out
+keep PuppiMET_phi_out

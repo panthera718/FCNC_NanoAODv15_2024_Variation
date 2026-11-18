@@ -1,0 +1,1949 @@
+import math
+import itertools
+import ROOT
+ROOT.PyConfig.IgnoreCommandLineOptions = True
+
+from PhysicsTools.NanoAODTools.postprocessing.framework.datamodel import Collection  # kept for interface compatibility
+from PhysicsTools.NanoAODTools.postprocessing.framework.eventloop import Module
+
+
+class FCNCTriLepton(Module, object):
+    """
+    Pure-Python replacement for the previous
+      - fcncTriLepton.py / central_fcncTriLepton.py
+      - FCNCTriLeptonCppWorker.h / ForBTag_FCNCTriLeptonCppWorker.h
+      - FCNCTriLeptonCppWorker.cc / ForBTag_FCNCTriLeptonCppWorker.cc
+
+    The event-selection and branch-filling logic is ported from the original
+    Python+C++ implementation so that this module can run standalone without
+    loading the C++ worker.
+    """
+
+    VALID_MODES = {
+        "MuElEl",
+        "ElMuMu",
+        "ElElEl",
+        "MuMuMu",
+        "TaTaTa",
+        "ElTaTa",
+        "MuTaTa",
+        "TaElEl",
+        "TaMuMu",
+        "NPLMuElEl",
+        "NPLElMuMu",
+        "NPLElElEl",
+        "NPLMuMuMu",
+        "NPLTaTaTa",
+        "NPLElTaTa",
+        "NPLMuTaTa",
+        "NPLTaElEl",
+        "NPLTaMuMu",
+    }
+
+    def __init__(self, *args, **kwargs):
+        self.mode = kwargs.get("mode")
+        self.jetVar = kwargs.get("jetVar")
+        self.jetSyst = kwargs.get("jetSyst")
+        if self.jetSyst not in (None, "Up", "Down"):
+            print('Jet systematic direction "%s" is not available.' % self.jetSyst)
+            self.jetSyst = None
+        if self.jetSyst in ("Up", "Down") and not self.jetVar:
+            print('jetSyst="%s" requires jetVar to be set.' % self.jetSyst)
+            self.jetSyst = None
+            self.jetVar = None
+
+        self.use_hadronFlavour = bool(
+            kwargs.get("use_hadronFlavour", False) or
+            (self.jetVar is not None and self.jetSyst in ("Up", "Down"))
+        )
+        if self.mode not in self.VALID_MODES:
+            print('Mode name "%s" is not available.' % self.mode)
+            self.mode = None
+
+        self.minCjetCvLDiscr_ = 0.099
+        self.minCjetCvBDiscr_ = 0.325
+        self.minQjetQGDiscr_ = 0.27
+        self.minBjetBDiscr_ = 0.2783
+
+        self._ttreereaderversion = -1
+        self.out = None
+    def beginJob(self):
+        pass
+
+    def endFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
+        # No C++ worker remains, but keep the cleanup pattern for tree-attached
+        # temporary outputs so the module stays friendly to the old workflow.
+        for attr in list(self.__dict__.keys()):
+            if attr.startswith("b_"):
+                delattr(self, attr)
+
+        if inputTree and hasattr(inputTree, 'tree') and inputTree.tree():
+            tree = inputTree.tree()
+            for attr in list(tree.__dict__.keys()):
+                if attr.startswith("b_out_"):
+                    delattr(tree, attr)
+
+    def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
+        self.out = wrappedOutputTree
+
+        if not self._is_jetvar_mode():
+            for objName in ["Lepton1", "Lepton2", "Lepton3"]:
+                for varName in [
+                    "pt", "eta", "phi", "mass", "PFIso", "jetPtRatio",
+                    "Jet_pt", "Jet_eta", "Jet_phi", "Jet_mass", "jetBTagDeepFlavor"
+                ]:
+                    self.out.branch("%s_%s" % (objName, varName), "F")
+            for objName in ["ptsortLepton1", "ptsortLepton2", "ptsortLepton3"]:
+                for varName in ["pt", "eta", "phi"]:
+                    self.out.branch("%s_%s" % (objName, varName), "F")
+            for objName in ["Z", "LeadingElectron", "LeadingMuon", "LeadingTau"]:
+                for varName in ["pt", "eta", "phi", "mass"]:
+                    self.out.branch("%s_%s" % (objName, varName), "F")
+            self.out.branch("MET_pt", "F")
+            self.out.branch("MET_phi", "F")
+            self.out.branch("Lepton1_pdgId", "I")
+            self.out.branch("Lepton2_pdgId", "I")
+            self.out.branch("Lepton3_pdgId", "I")
+            self.out.branch("Lepton1_tauGenPartFlav", "I")
+            self.out.branch("Lepton2_tauGenPartFlav", "I")
+            self.out.branch("Lepton3_tauGenPartFlav", "I")
+            self.out.branch("Lepton1_tauDecayMode", "I")
+            self.out.branch("Lepton2_tauDecayMode", "I")
+            self.out.branch("Lepton3_tauDecayMode", "I")
+            self.out.branch("Lepton1_tauProng", "I")
+            self.out.branch("Lepton2_tauProng", "I")
+            self.out.branch("Lepton3_tauProng", "I")
+            self.out.branch("Lepton1_isTight", "O")
+            self.out.branch("Lepton2_isTight", "O")
+            self.out.branch("Lepton3_isTight", "O")
+            self.out.branch("Lepton1_isFake", "O")
+            self.out.branch("Lepton2_isFake", "O")
+            self.out.branch("Lepton3_isFake", "O")
+            self.out.branch("Lepton1_mvaTOP", "F")
+            self.out.branch("Lepton2_mvaTOP", "F")
+            self.out.branch("Lepton3_mvaTOP", "F")
+            self.out.branch("LeadingLepton_pt", "F")
+            self.out.branch("TriLepton_mass", "F")
+            self.out.branch("TriLepton_pt", "F")
+            self.out.branch("TriLepton_WleptonZdPhi", "F")
+            self.out.branch("TriLepton_WleptonZdR", "F")
+            self.out.branch("Z_charge", "I")
+            self.out.branch("nVetoLepton", "i")
+            self.out.branch("nGoodLepton", "i")
+            self.out.branch("nNPLepton", "i")
+            self.out.branch("GoodLeptonCode", "I")
+            self.out.branch("nGoodElectron", "i")
+            self.out.branch("nGoodMuon", "i")
+            self.out.branch("nGoodTau", "i")
+            self.out.branch("nNPTau", "i")
+            self.out.branch("GoodJet_index", "i", lenVar="nGoodJet")
+            for varName in ["pt", "eta", "phi", "mass", "DeepFlavB"]:
+                self.out.branch("GoodJet_%s" % varName, "F", lenVar="nGoodJet")
+            if self.use_hadronFlavour:
+                self.out.branch("GoodJet_hadronFlavour", "I", lenVar="nGoodJet")
+            for objName in ["ptsortGoodJet1", "ptsortGoodJet2", "ptsortGoodJet3"]:
+                for varName in ["pt", "eta", "phi"]:
+                    self.out.branch("%s_%s" % (objName, varName), "F")
+            self.out.branch("nBjet", "i")
+            self.out.branch("W_MT", "F")
+            self.out.branch("nCjet", "i")
+            self.out.branch("nUDSjet", "i")
+            self.out.branch("GoodJet_DeepFlavCvL", "F", lenVar="nGoodJet")
+            self.out.branch("GoodJet_DeepFlavCvB", "F", lenVar="nGoodJet")
+            self.out.branch("GoodJet_DeepFlavQG", "F", lenVar="nGoodJet")
+        else:
+            suffix = self._jet_suffix()
+            lenVar = "nGoodJet_%s" % suffix
+            self.out.branch("MET_pt_%s" % suffix, "F")
+            self.out.branch("MET_phi_%s" % suffix, "F")
+            self.out.branch("GoodJet_index_%s" % suffix, "i", lenVar=lenVar)
+            for varName in ["pt", "eta", "phi", "mass", "DeepFlavB"]:
+                self.out.branch("GoodJet_%s_%s" % (varName, suffix), "F", lenVar=lenVar)
+            self.out.branch("GoodJet_hadronFlavour_%s" % suffix, "I", lenVar=lenVar)
+            for objName in ["ptsortGoodJet1", "ptsortGoodJet2", "ptsortGoodJet3"]:
+                for varName in ["pt", "eta", "phi"]:
+                    self.out.branch("%s_%s_%s" % (objName, varName, suffix), "F")
+            self.out.branch("nBjet_%s" % suffix, "i")
+            self.out.branch("W_MT_%s" % suffix, "F")
+            self.out.branch("nCjet_%s" % suffix, "i")
+            self.out.branch("nUDSjet_%s" % suffix, "i")
+            self.out.branch("GoodJet_DeepFlavCvL_%s" % suffix, "F", lenVar=lenVar)
+            self.out.branch("GoodJet_DeepFlavCvB_%s" % suffix, "F", lenVar=lenVar)
+            self.out.branch("GoodJet_DeepFlavQG_%s" % suffix, "F", lenVar=lenVar)
+
+        self.initReaders(inputTree)
+    def initReaders(self, tree):
+        self.b_MET_pt = tree.valueReader("MET_T1_pt")
+        self.b_MET_phi = tree.valueReader("MET_T1_phi")
+
+        objName = "Electron"
+        setattr(self, "b_n%s" % objName, tree.valueReader("n%s" % objName))
+        for varName in [
+            "pt", "eta", "isPFcand", "lostHits", "dxy", "dz", "sip3d",
+            "miniPFRelIso_all", "sieie", "hoe", "eInvMinusPInv", "convVeto",
+            "mvaTOP", "phi", "mass", "charge",
+            "jetPt", "jetEta", "jetPhi", "jetMass",
+            "jetPtRatio", "jetRelIso", "mvaFall17V2noIso_WPL",
+            "pfRelIso03_all", "jetBTagDeepFlavor", "deltaEtaSC"
+        ]:
+            setattr(self, "b_%s_%s" % (objName, varName), tree.arrayReader("%s_%s" % (objName, varName)))
+
+        objName = "Muon"
+        setattr(self, "b_n%s" % objName, tree.valueReader("n%s" % objName))
+        for varName in [
+            "pt", "eta", "isPFcand", "isTracker", "isGlobal", "dxy", "dz", "sip3d",
+            "miniPFRelIso_all", "mediumId", "mvaTOP", "phi", "mass", "charge",
+            "jetPt", "jetEta", "jetPhi", "jetMass", "jetPtRatio",
+            "pfRelIso04_all", "jetBTagDeepFlavor"
+        ]:
+            setattr(self, "b_%s_%s" % (objName, varName), tree.arrayReader("%s_%s" % (objName, varName)))
+
+        objName = "Tau"
+        setattr(self, "b_n%s" % objName, tree.valueReader("n%s" % objName))
+        for varName in [
+            "pt", "eta", "phi", "mass", "charge", "dz", "decayMode",
+            "idDeepTau2017v2p1VSjet", "idDeepTau2017v2p1VSe", "idDeepTau2017v2p1VSmu",
+            "rawIso", "jetIdx"
+        ]:
+            setattr(self, "b_%s_%s" % (objName, varName), tree.arrayReader("%s_%s" % (objName, varName)))
+        raw_tree = tree.tree() if hasattr(tree, "tree") and tree.tree() else tree
+        self.has_Tau_genPartFlav = bool(hasattr(raw_tree, "GetBranch") and raw_tree.GetBranch("Tau_genPartFlav"))
+        if self.has_Tau_genPartFlav:
+            self.b_Tau_genPartFlav = tree.arrayReader("Tau_genPartFlav")
+
+        objName = "Jet"
+        setattr(self, "b_n%s" % objName, tree.valueReader("n%s" % objName))
+        jet_var_names = [
+            "eta", "phi", "jetId", "puId", "btagDeepFlavB",
+            "btagDeepFlavCvL", "btagDeepFlavCvB", "btagDeepFlavQG"
+        ]
+        if self.use_hadronFlavour or self._is_jetvar_mode():
+            jet_var_names.append("hadronFlavour")
+        for varName in jet_var_names:
+            setattr(self, "b_%s_%s" % (objName, varName), tree.arrayReader("%s_%s" % (objName, varName)))
+        for varName in ["pt", "mass"]:
+            setattr(self, "b_%s_%s" % (objName, varName), tree.arrayReader("%s_%s_nom" % (objName, varName)))
+
+        if self._is_jetvar_mode():
+            self.b_Jet_Uncert = tree.arrayReader("Jet_jecUncert%s" % self.jetVar)
+
+        self._ttreereaderversion = tree._ttreereaderversion
+    def setCjetCuts(self, cvl, cvb):
+        self.minCjetCvLDiscr_ = float(cvl)
+        self.minCjetCvBDiscr_ = float(cvb)
+
+    def setQjetCut(self, qg):
+        self.minQjetQGDiscr_ = float(qg)
+
+    def _is_taufr_mode(self):
+        return bool(self.mode) and self.mode.startswith("FR")
+
+    def _candidate_pt(self, flavor, idx):
+        if flavor == "e":
+            return float(self.b_Electron_pt.At(idx))
+        if flavor == "mu":
+            return float(self.b_Muon_pt.At(idx))
+        if flavor == "tau":
+            return float(self.b_Tau_pt.At(idx))
+        return -999.0
+
+    def _candidate_is_fake(self, flavor, idx, electronIdxs, muonIdxs):
+        if flavor == "e":
+            return bool(self.isOnlyFakeElectron(idx))
+        if flavor == "mu":
+            return bool(self.isOnlyFakeMuon(idx))
+        if flavor == "tau":
+            return bool(self.isOnlyFakeTau(idx, electronIdxs, muonIdxs))
+        return False
+
+    def _iter_combinations(self, idxs, n):
+        if n <= 0:
+            yield ()
+            return
+        for combo in itertools.combinations(idxs, n):
+            yield combo
+
+    def _select_npl_indices(self, mode, npElectronIdxs, npMuonIdxs, npTauIdxs):
+        req_e, req_m, req_t = self._required_lepton_multiplicity(mode)
+        if len(npElectronIdxs) < req_e or len(npMuonIdxs) < req_m or len(npTauIdxs) < req_t:
+            return None
+
+        best = None
+        best_score = None
+
+        for ecombo in self._iter_combinations(npElectronIdxs, req_e):
+            ecombo = list(ecombo)
+            for mucombo in self._iter_combinations(npMuonIdxs, req_m):
+                mucombo = list(mucombo)
+                for taucombo in self._iter_combinations(npTauIdxs, req_t):
+                    taucombo = list(taucombo)
+
+                    fake_count = 0
+                    fake_count += sum(1 for i in ecombo if self._candidate_is_fake("e", i, ecombo, mucombo))
+                    fake_count += sum(1 for i in mucombo if self._candidate_is_fake("mu", i, ecombo, mucombo))
+                    fake_count += sum(1 for i in taucombo if self._candidate_is_fake("tau", i, ecombo, mucombo))
+                    if fake_count < 1:
+                        continue
+
+                    pts = sorted(
+                        [self._candidate_pt("e", i) for i in ecombo] +
+                        [self._candidate_pt("mu", i) for i in mucombo] +
+                        [self._candidate_pt("tau", i) for i in taucombo],
+                        reverse=True
+                    )
+                    # Prefer the highest-pT valid combination; use fewer replacements (larger pt sum)
+                    score = tuple(pts + [fake_count])
+                    if best_score is None or score > best_score:
+                        best_score = score
+                        best = (ecombo, mucombo, taucombo)
+
+        return best
+
+    def _is_jetvar_mode(self):
+        return self.jetVar is not None and self.jetSyst in ("Up", "Down")
+
+    def _jet_shift_sign(self):
+        if self.jetSyst == "Up":
+            return 1.0
+        if self.jetSyst == "Down":
+            return -1.0
+        return 0.0
+
+    def _jet_suffix(self):
+        if not self._is_jetvar_mode():
+            return ""
+        return "%s%s" % (self.jetVar, self.jetSyst)
+
+    @staticmethod
+    def _p4_from_arrays(pt_arr, eta_arr, phi_arr, mass_arr, idx):
+        p4 = ROOT.TLorentzVector()
+        p4.SetPtEtaPhiM(pt_arr.At(idx), eta_arr.At(idx), phi_arr.At(idx), mass_arr.At(idx))
+        return p4
+
+    @staticmethod
+    def _uchar_to_int(x):
+        if isinstance(x, str):
+            return ord(x)
+        if isinstance(x, bytes):
+            return x[0]
+        return int(x)
+
+    @staticmethod
+    def _copy_p4_from_lv(lv):
+        return [float(lv.Pt()), float(lv.Eta()), float(lv.Phi()), float(lv.M())]
+
+    @staticmethod
+    def _copy_p4_from_arrays(pt_arr, eta_arr, phi_arr, mass_arr, idx):
+        return [
+            float(pt_arr.At(idx)),
+            float(eta_arr.At(idx)),
+            float(phi_arr.At(idx)),
+            float(mass_arr.At(idx)),
+        ]
+
+    @staticmethod
+    def _compute_mt(lepP4, met_pt, met_phi):
+        met_px = met_pt * math.cos(met_phi)
+        met_py = met_pt * math.sin(met_phi)
+        pt = lepP4.Pt() + met_pt
+        px = lepP4.Px() + met_px
+        py = lepP4.Py() + met_py
+        return math.sqrt(max(0.0, pt * pt - px * px - py * py))
+
+    @staticmethod
+    def _set_tree_attr(tree, name, value):
+        setattr(tree, "b_out_%s" % name, value)
+
+    @staticmethod
+    def _get_ptsort_goodjet(goodjet_p4, nGoodJet, which, component):
+        if nGoodJet >= which:
+            return goodjet_p4[component][which - 1]
+        return -999.0
+
+    @staticmethod
+    def _tau_prong_group_from_decaymode(decay_mode):
+        dm = int(decay_mode)
+        if dm in (0, 1, 2):
+            return 1
+        if dm in (10, 11):
+            return 23
+        if dm >= 10:
+            return 23
+        return 0
+
+    @staticmethod
+    def _required_lepton_multiplicity(mode):
+        """
+        mapping = {
+            "MuElEl": (1, 2, 0),
+            "ElMuMu": (2, 1, 0),
+            "ElElEl": (3, 0, 0),
+            "MuMuMu": (0, 3, 0),
+            "TaTaTa": (0, 0, 3),
+            "ElTaTa": (1, 0, 2),
+            "MuTaTa": (0, 1, 2),
+            "TaElEl": (2, 0, 1),
+            "TaMuMu": (0, 2, 1),
+            "NPLMuElEl": (1, 2, 0),
+            "NPLElMuMu": (2, 1, 0),
+            "NPLElElEl": (3, 0, 0),
+            "NPLMuMuMu": (0, 3, 0),
+            "NPLTaTaTa": (0, 0, 3),
+            "NPLElTaTa": (1, 0, 2),
+            "NPLMuTaTa": (0, 1, 2),
+            "NPLTaElEl": (2, 0, 1),
+            "NPLTaMuMu": (0, 2, 1),
+        }
+        """
+        mapping = {
+            "MuElEl": (2, 1, 0),
+            "ElMuMu": (1, 2, 0),
+            "ElElEl": (3, 0, 0),
+            "MuMuMu": (0, 3, 0),
+            "TaTaTa": (0, 0, 3),
+            "ElTaTa": (1, 0, 2),
+            "MuTaTa": (0, 1, 2),
+            "TaElEl": (2, 0, 1),
+            "TaMuMu": (0, 2, 1),
+            "NPLMuElEl": (2, 1, 0),
+            "NPLElMuMu": (1, 2, 0),
+            "NPLElElEl": (3, 0, 0),
+            "NPLMuMuMu": (0, 3, 0),
+            "NPLTaTaTa": (0, 0, 3),
+            "NPLElTaTa": (1, 0, 2),
+            "NPLMuTaTa": (0, 1, 2),
+            "NPLTaElEl": (2, 0, 1),
+            "NPLTaMuMu": (0, 2, 1),
+        }
+        return mapping.get(mode, (0, 0, 0))
+
+    def _get_lepton_aux_state(self, idx):
+        return {
+            "pdgId": getattr(self, f"out_Lepton{idx}_pdgId"),
+            "tauDecayMode": getattr(self, f"out_Lepton{idx}_tauDecayMode"),
+            "tauProng": getattr(self, f"out_Lepton{idx}_tauProng"),
+            "tauGenPartFlav": getattr(self, f"out_Lepton{idx}_tauGenPartFlav"),
+            "PFIso": getattr(self, f"out_Lepton{idx}_PFIso"),
+            "jetPtRatio": getattr(self, f"out_Lepton{idx}_jetPtRatio"),
+            "isTight": getattr(self, f"out_Lepton{idx}_isTight"),
+            "isFake": getattr(self, f"out_Lepton{idx}_isFake"),
+            "jetBTagDeepFlavor": getattr(self, f"out_Lepton{idx}_jetBTagDeepFlavor"),
+            "mvaTOP": getattr(self, f"out_Lepton{idx}_mvaTOP"),
+            "Jet_p4": list(getattr(self, f"out_Lepton{idx}_Jet_p4")),
+        }
+
+    def _set_lepton_aux_state(self, idx, state):
+        setattr(self, f"out_Lepton{idx}_pdgId", int(state["pdgId"]))
+        setattr(self, f"out_Lepton{idx}_tauDecayMode", int(state["tauDecayMode"]))
+        setattr(self, f"out_Lepton{idx}_tauProng", int(state["tauProng"]))
+        setattr(self, f"out_Lepton{idx}_tauGenPartFlav", int(state["tauGenPartFlav"]))
+        setattr(self, f"out_Lepton{idx}_PFIso", float(state["PFIso"]))
+        setattr(self, f"out_Lepton{idx}_jetPtRatio", float(state["jetPtRatio"]))
+        setattr(self, f"out_Lepton{idx}_isTight", bool(state["isTight"]))
+        setattr(self, f"out_Lepton{idx}_isFake", bool(state["isFake"]))
+        setattr(self, f"out_Lepton{idx}_jetBTagDeepFlavor", float(state["jetBTagDeepFlavor"]))
+        setattr(self, f"out_Lepton{idx}_mvaTOP", float(state["mvaTOP"]))
+        setattr(self, f"out_Lepton{idx}_Jet_p4", list(state["Jet_p4"]))
+
+    def _permute_lepton_aux_states(self, order):
+        old_states = [self._get_lepton_aux_state(i) for i in (1, 2, 3)]
+        for new_idx, old_idx in enumerate(order, start=1):
+            self._set_lepton_aux_state(new_idx, old_states[old_idx])
+
+    @staticmethod
+    def _sort_desc_by_pt(idxs, pt_reader):
+        idxs.sort(key=lambda i: pt_reader.At(i), reverse=True)
+
+    def _get_corrected_met(self):
+        met_px = self.out_MET_pt * math.cos(self.out_MET_phi)
+        met_py = self.out_MET_pt * math.sin(self.out_MET_phi)
+        shift_sign = self._jet_shift_sign()
+        for pt, phi, uncert in zip(self.out_GoodJet_p4[0], self.out_GoodJet_p4[2], self.out_GoodJet_Uncert):
+            met_px += (-shift_sign) * uncert * pt * math.cos(phi)
+            met_py += (-shift_sign) * uncert * pt * math.sin(phi)
+        return float(math.hypot(met_px, met_py)), float(math.atan2(met_py, met_px))
+
+    def _get_shifted_goodjet_pt(self):
+        shift_sign = self._jet_shift_sign()
+        return [float(pt * (1.0 + shift_sign * uncert)) for pt, uncert in zip(self.out_GoodJet_p4[0], self.out_GoodJet_Uncert)]
+
+    def _get_shifted_goodjet_mass(self):
+        shift_sign = self._jet_shift_sign()
+        return [float(mass * (1.0 + shift_sign * uncert)) for mass, uncert in zip(self.out_GoodJet_p4[3], self.out_GoodJet_Uncert)]
+    def _reset_outputs(self):
+        self.out_LeadingMuon_p4 = [0.0, 0.0, 0.0, 0.0]
+        self.out_LeadingElectron_p4 = [0.0, 0.0, 0.0, 0.0]
+        self.out_LeadingTau_p4 = [0.0, 0.0, 0.0, 0.0]
+
+        self.out_Lepton1_p4 = [0.0, 0.0, 0.0, 0.0]
+        self.out_Lepton2_p4 = [0.0, 0.0, 0.0, 0.0]
+        self.out_Lepton3_p4 = [0.0, 0.0, 0.0, 0.0]
+
+        self.out_Lepton1_Jet_p4 = [0.0, 0.0, 0.0, 0.0]
+        self.out_Lepton2_Jet_p4 = [0.0, 0.0, 0.0, 0.0]
+        self.out_Lepton3_Jet_p4 = [0.0, 0.0, 0.0, 0.0]
+
+        self.out_Lepton1_pdgId = 0
+        self.out_Lepton2_pdgId = 0
+        self.out_Lepton3_pdgId = 0
+        self.out_Lepton1_tauDecayMode = -1
+        self.out_Lepton2_tauDecayMode = -1
+        self.out_Lepton3_tauDecayMode = -1
+        self.out_Lepton1_tauProng = 0
+        self.out_Lepton2_tauProng = 0
+        self.out_Lepton3_tauProng = 0
+        self.out_Lepton1_tauGenPartFlav = -1
+        self.out_Lepton2_tauGenPartFlav = -1
+        self.out_Lepton3_tauGenPartFlav = -1
+
+        self.out_Lepton1_PFIso = 0.0
+        self.out_Lepton2_PFIso = 0.0
+        self.out_Lepton3_PFIso = 0.0
+
+        self.out_Lepton1_jetPtRatio = 0.0
+        self.out_Lepton2_jetPtRatio = 0.0
+        self.out_Lepton3_jetPtRatio = 0.0
+
+        self.out_Lepton1_isTight = False
+        self.out_Lepton2_isTight = False
+        self.out_Lepton3_isTight = False
+
+        self.out_Lepton1_isFake = False
+        self.out_Lepton2_isFake = False
+        self.out_Lepton3_isFake = False
+
+        self.out_Lepton1_jetBTagDeepFlavor = 0.0
+        self.out_Lepton2_jetBTagDeepFlavor = 0.0
+        self.out_Lepton3_jetBTagDeepFlavor = 0.0
+
+        self.out_Lepton1_mvaTOP = 0.0
+        self.out_Lepton2_mvaTOP = 0.0
+        self.out_Lepton3_mvaTOP = 0.0
+
+        self.out_ptsortLepton1_pt = 0.0
+        self.out_ptsortLepton1_eta = 0.0
+        self.out_ptsortLepton1_phi = 0.0
+        self.out_ptsortLepton2_pt = 0.0
+        self.out_ptsortLepton2_eta = 0.0
+        self.out_ptsortLepton2_phi = 0.0
+        self.out_ptsortLepton3_pt = 0.0
+        self.out_ptsortLepton3_eta = 0.0
+        self.out_ptsortLepton3_phi = 0.0
+
+        self.out_TriLepton_mass = 0.0
+        self.out_TriLepton_pt = 0.0
+        self.out_TriLepton_WleptonZdPhi = 0.0
+        self.out_TriLepton_WleptonZdR = 0.0
+
+        self.out_Z_p4 = [0.0, 0.0, 0.0, 0.0]
+        self.out_Z_charge = 0
+
+        self.out_MET_pt = 0.0
+        self.out_MET_phi = 0.0
+        self.out_W_MT = 0.0
+
+        self.out_GoodLeptonCode = 0
+        self.out_nGoodElectron = 0
+        self.out_nGoodMuon = 0
+        self.out_nGoodTau = 0
+        self.out_nNPElectron = 0
+        self.out_nNPMuon = 0
+        self.out_nNPTau = 0
+        self.out_nVetoElectron = 0
+        self.out_nVetoMuon = 0
+
+        self.out_nGoodJet = 0
+        self.out_nBjet = 0
+        self.out_nCjet = 0
+        self.out_nUDSjet = 0
+
+        self.out_GoodJet_p4 = [[], [], [], []]
+        self.out_GoodJet_DeepFlavB = []
+        self.out_GoodJet_index = []
+        self.out_GoodJet_DeepFlavCvL = []
+        self.out_GoodJet_DeepFlavCvB = []
+        self.out_GoodJet_DeepFlavQG = []
+        self.out_GoodJet_hadronFlavour = []
+        self.out_GoodJet_Uncert = []
+
+    # ------------------------------------------------------------------
+    # Ported object selections
+    # ------------------------------------------------------------------
+    def _passes_muon_baseline(self, i):
+        if not (self.b_Muon_pt.At(i) > 10):
+            return False
+        if not (abs(self.b_Muon_eta.At(i)) < 2.4):
+            return False
+        if not self.b_Muon_isPFcand.At(i):
+            return False
+        if not (self.b_Muon_isTracker.At(i) or self.b_Muon_isGlobal.At(i)):
+            return False
+        if not (abs(self.b_Muon_dxy.At(i)) < 0.05):
+            return False
+        if not (abs(self.b_Muon_dz.At(i)) < 0.1):
+            return False
+        if not (self.b_Muon_sip3d.At(i) < 8):
+            return False
+        if not (self.b_Muon_miniPFRelIso_all.At(i) < 0.4):
+            return False
+        if not self.b_Muon_mediumId.At(i):
+            return False
+        return True
+
+    def isGoodMuon(self, i):
+        if not self._passes_muon_baseline(i):
+            return False
+        if not (self.b_Muon_mvaTOP.At(i) > 0.64):
+            return False
+        return True
+
+    def isNPMuon(self, i):
+        if not self._passes_muon_baseline(i):
+            return False
+        if self.b_Muon_mvaTOP.At(i) > 0.64:
+            return True
+        if not (self.b_Muon_jetBTagDeepFlavor.At(i) < 0.5):
+            return False
+        return True
+
+    def isOnlyFakeMuon(self, i):
+        return self.isNPMuon(i) and (not self.isGoodMuon(i))
+
+    def _passes_electron_baseline(self, i):
+        if not (self.b_Electron_pt.At(i) > 10):
+            return False
+        if not (abs(self.b_Electron_eta.At(i)) < 2.5):
+            return False
+
+        scEta = self.b_Electron_eta.At(i) + self.b_Electron_deltaEtaSC.At(i)
+        if abs(scEta) > 1.4442 and abs(scEta) < 1.566:
+            return False
+
+        if not self.b_Electron_isPFcand.At(i):
+            return False
+        if not (self._uchar_to_int(self.b_Electron_lostHits.At(i)) < 2):
+            return False
+        if not (abs(self.b_Electron_dxy.At(i)) < 0.05):
+            return False
+        if not (abs(self.b_Electron_dz.At(i)) < 0.1):
+            return False
+        if not (self.b_Electron_sip3d.At(i) < 8):
+            return False
+        if not (self.b_Electron_miniPFRelIso_all.At(i) < 0.4):
+            return False
+
+        if not (
+            ((abs(self.b_Electron_eta.At(i)) < 1.479) and (self.b_Electron_sieie.At(i) < 0.011)) or
+            ((abs(self.b_Electron_eta.At(i)) >= 1.479) and (self.b_Electron_sieie.At(i) < 0.030))
+        ):
+            return False
+
+        if not (self.b_Electron_hoe.At(i) < 0.10):
+            return False
+        if not (self.b_Electron_eInvMinusPInv.At(i) > -0.04):
+            return False
+        if not self.b_Electron_convVeto.At(i):
+            return False
+        return True
+
+    def isGoodElectron(self, i):
+        if not self._passes_electron_baseline(i):
+            return False
+        if not (self.b_Electron_mvaTOP.At(i) > 0.64):
+            return False
+        return True
+
+    def isNPElectron(self, i):
+        if not self._passes_electron_baseline(i):
+            return False
+        if self.b_Electron_mvaTOP.At(i) > 0.64:
+            return True
+        if not self.b_Electron_mvaFall17V2noIso_WPL.At(i):
+            return False
+        if not (self.b_Electron_jetBTagDeepFlavor.At(i) < 0.06):
+            return False
+        if not (self.b_Electron_jetRelIso.At(i) < 0.35):
+            return False
+        return True
+
+    def isOnlyFakeElectron(self, i):
+        return self.isNPElectron(i) and (not self.isGoodElectron(i))
+
+    @staticmethod
+    def _deep_tau_pass(score, bit):
+        return (FCNCTriLepton._uchar_to_int(score) & int(bit)) != 0
+
+    def _tau_jet_idx(self, i):
+        idx = int(self.b_Tau_jetIdx.At(i))
+        if idx < 0 or idx >= self.b_Jet_pt.GetSize():
+            return -1
+        return idx
+
+    def _tau_matched_jet_p4(self, i):
+        jet_idx = self._tau_jet_idx(i)
+        if jet_idx < 0:
+            return ROOT.TLorentzVector()
+        return self._p4_from_arrays(self.b_Jet_pt, self.b_Jet_eta, self.b_Jet_phi, self.b_Jet_mass, jet_idx)
+
+    def _tau_jet_pt_ratio(self, i):
+        jet_idx = self._tau_jet_idx(i)
+        if jet_idx < 0:
+            return 1.0
+        jet_pt = float(self.b_Jet_pt.At(jet_idx))
+        if jet_pt <= 0.0:
+            return 1.0
+        return float(self.b_Tau_pt.At(i) / jet_pt)
+
+    def _tau_matched_jet_btag(self, i):
+        jet_idx = self._tau_jet_idx(i)
+        if jet_idx < 0:
+            return 0.0
+        return float(self.b_Jet_btagDeepFlavB.At(jet_idx))
+
+    def _tau_passes_lepton_cleaning(self, i, electronIdxs=None, muonIdxs=None):
+        tauP4 = self._p4_from_arrays(self.b_Tau_pt, self.b_Tau_eta, self.b_Tau_phi, self.b_Tau_mass, i)
+        for ie in (electronIdxs or []):
+            eleP4 = self._p4_from_arrays(self.b_Electron_pt, self.b_Electron_eta, self.b_Electron_phi, self.b_Electron_mass, ie)
+            if tauP4.DeltaR(eleP4) < 0.4:
+                return False
+        for im in (muonIdxs or []):
+            muP4 = self._p4_from_arrays(self.b_Muon_pt, self.b_Muon_eta, self.b_Muon_phi, self.b_Muon_mass, im)
+            if tauP4.DeltaR(muP4) < 0.4:
+                return False
+        return True
+
+    def _passes_tau_baseline(self, i, electronIdxs=None, muonIdxs=None):
+        if not (self.b_Tau_pt.At(i) > 20):
+            return False
+        if not (abs(self.b_Tau_eta.At(i)) < 2.3):
+            return False
+        if not (abs(self.b_Tau_dz.At(i)) < 0.2):
+            return False
+        if int(self.b_Tau_decayMode.At(i)) in (5, 6):
+            return False
+        if not self._tau_passes_lepton_cleaning(i, electronIdxs, muonIdxs):
+            return False
+        return True
+
+    def _tau_genpartflav(self, i):
+        if hasattr(self, "b_Tau_genPartFlav") and self.b_Tau_genPartFlav is not None:
+            return self._uchar_to_int(self.b_Tau_genPartFlav.At(i))
+        return -1
+
+    def isGoodTau(self, i, electronIdxs=None, muonIdxs=None):
+        if not self._passes_tau_baseline(i, electronIdxs, muonIdxs):
+            return False
+        if not self._deep_tau_pass(self.b_Tau_idDeepTau2017v2p1VSjet.At(i), 16):
+            return False
+        if not self._deep_tau_pass(self.b_Tau_idDeepTau2017v2p1VSe.At(i), 2):
+            return False
+        if not self._deep_tau_pass(self.b_Tau_idDeepTau2017v2p1VSmu.At(i), 1):
+            return False
+        return True
+
+    def isNPTau(self, i, electronIdxs=None, muonIdxs=None):
+        if not self._passes_tau_baseline(i, electronIdxs, muonIdxs):
+            return False
+        if not self._deep_tau_pass(self.b_Tau_idDeepTau2017v2p1VSjet.At(i), 2):
+            return False
+        if not self._deep_tau_pass(self.b_Tau_idDeepTau2017v2p1VSe.At(i), 1):
+            return False
+        if not self._deep_tau_pass(self.b_Tau_idDeepTau2017v2p1VSmu.At(i), 1):
+            return False
+        return True
+
+    def isOnlyFakeTau(self, i, electronIdxs=None, muonIdxs=None):
+        return self.isNPTau(i, electronIdxs, muonIdxs) and (not self.isGoodTau(i, electronIdxs, muonIdxs))
+
+    def isGoodJet(self, i):
+        shifted_pt = self.b_Jet_pt.At(i)
+        if self._is_jetvar_mode():
+            shifted_pt = shifted_pt * (1.0 + self._jet_shift_sign() * self.b_Jet_Uncert.At(i))
+        if not (shifted_pt > 25):
+            return False
+        if not (abs(self.b_Jet_eta.At(i)) < 2.4):
+            return False
+        if not (self.b_Jet_jetId.At(i) >= 2):
+            return False
+        if self.b_Jet_pt.At(i) < 50:
+            if not (self.b_Jet_puId.At(i) >= 4):
+                return False
+        return True
+    def analyze(self, event):
+        if event._tree._ttreereaderversion > self._ttreereaderversion:
+            self.initReaders(event._tree)
+
+        self._reset_outputs()
+
+        self.out_MET_pt = float(getattr(event, "MET_T1_pt"))
+        self.out_MET_phi = float(getattr(event, "MET_T1_phi"))
+
+        muonIdxs = [i for i in range(self.b_Muon_pt.GetSize()) if self.isGoodMuon(i)]
+        electronIdxs = [i for i in range(self.b_Electron_pt.GetSize()) if self.isGoodElectron(i)]
+        self._sort_desc_by_pt(muonIdxs, self.b_Muon_pt)
+        self._sort_desc_by_pt(electronIdxs, self.b_Electron_pt)
+
+        npMuonIdxs = [i for i in range(self.b_Muon_pt.GetSize()) if self.isNPMuon(i)]
+        npElectronIdxs = [i for i in range(self.b_Electron_pt.GetSize()) if self.isNPElectron(i)]
+        self._sort_desc_by_pt(npMuonIdxs, self.b_Muon_pt)
+        self._sort_desc_by_pt(npElectronIdxs, self.b_Electron_pt)
+
+        tauIdxs = [i for i in range(self.b_Tau_pt.GetSize()) if self.isGoodTau(i, electronIdxs, muonIdxs)]
+        npTauIdxs = [i for i in range(self.b_Tau_pt.GetSize()) if self.isNPTau(i, npElectronIdxs, npMuonIdxs)]
+        self._sort_desc_by_pt(tauIdxs, self.b_Tau_pt)
+        self._sort_desc_by_pt(npTauIdxs, self.b_Tau_pt)
+
+        nGoodMuons = len(muonIdxs)
+        nGoodElectrons = len(electronIdxs)
+        nGoodTaus = len(tauIdxs)
+        nNPMuons = len(npMuonIdxs)
+        nNPElectrons = len(npElectronIdxs)
+        nNPTaus = len(npTauIdxs)
+
+        self.out_nGoodMuon = nGoodMuons
+        self.out_nGoodElectron = nGoodElectrons
+        self.out_nGoodTau = nGoodTaus
+        self.out_nNPMuon = nNPMuons
+        self.out_nNPElectron = nNPElectrons
+        self.out_nNPTau = nNPTaus
+
+        req_e, req_m, req_t = self._required_lepton_multiplicity(self.mode)
+        if self.mode and self.mode.startswith("NPL"):
+            if not (nNPElectrons == req_e and nNPMuons == req_m and nNPTaus == req_t):
+                return False
+        else:
+            if not (nGoodElectrons == req_e and nGoodMuons == req_m and nGoodTaus == req_t):
+                return False
+
+        lepton1P4 = ROOT.TLorentzVector()
+        lepton2P4 = ROOT.TLorentzVector()
+        lepton3P4 = ROOT.TLorentzVector()
+        lepton1jetP4 = ROOT.TLorentzVector()
+        lepton2jetP4 = ROOT.TLorentzVector()
+        lepton3jetP4 = ROOT.TLorentzVector()
+
+        if nGoodTaus >= 1:
+            i = tauIdxs[0]
+            tauLeadP4 = self._p4_from_arrays(self.b_Tau_pt, self.b_Tau_eta, self.b_Tau_phi, self.b_Tau_mass, i)
+            self.out_LeadingTau_p4 = self._copy_p4_from_lv(tauLeadP4)
+        elif nNPTaus >= 1:
+            i = npTauIdxs[0]
+            tauLeadP4 = self._p4_from_arrays(self.b_Tau_pt, self.b_Tau_eta, self.b_Tau_phi, self.b_Tau_mass, i)
+            self.out_LeadingTau_p4 = self._copy_p4_from_lv(tauLeadP4)
+
+        # --------------------------------------------------------------
+        # Central selections
+        # --------------------------------------------------------------
+        if self.mode == "MuElEl":
+            if nGoodMuons >= 1 and nGoodElectrons >= 1:
+                if nGoodMuons >= 1:
+                    i = muonIdxs[0]
+                    lepton1P4 = self._p4_from_arrays(self.b_Muon_pt, self.b_Muon_eta, self.b_Muon_phi, self.b_Muon_mass, i)
+                    self.out_Lepton1_pdgId = -13 * int(self.b_Muon_charge.At(i))
+                    self.out_LeadingMuon_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_PFIso = float(self.b_Muon_pfRelIso04_all.At(i))
+                    lepton1jetP4 = self._p4_from_arrays(self.b_Muon_jetPt, self.b_Muon_jetEta, self.b_Muon_jetPhi, self.b_Muon_jetMass, i)
+                    self.out_Lepton1_Jet_p4 = self._copy_p4_from_lv(lepton1jetP4)
+                if nGoodElectrons >= 1:
+                    i = electronIdxs[0]
+                    lepton2P4 = self._p4_from_arrays(self.b_Electron_pt, self.b_Electron_eta, self.b_Electron_phi, self.b_Electron_mass, i)
+                    self.out_Lepton2_pdgId = -11 * int(self.b_Electron_charge.At(i))
+                    self.out_LeadingElectron_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_PFIso = float(self.b_Electron_pfRelIso03_all.At(i))
+                    lepton2jetP4 = self._p4_from_arrays(self.b_Electron_jetPt, self.b_Electron_jetEta, self.b_Electron_jetPhi, self.b_Electron_jetMass, i)
+                    self.out_Lepton2_Jet_p4 = self._copy_p4_from_lv(lepton2jetP4)
+                if nGoodElectrons >= 2:
+                    i = electronIdxs[1]
+                    lepton3P4 = self._p4_from_arrays(self.b_Electron_pt, self.b_Electron_eta, self.b_Electron_phi, self.b_Electron_mass, i)
+                    self.out_Lepton3_pdgId = -11 * int(self.b_Electron_charge.At(i))
+                    self.out_Lepton3_p4 = self._copy_p4_from_lv(lepton3P4)
+                    self.out_Lepton3_PFIso = float(self.b_Electron_pfRelIso03_all.At(i))
+                    lepton3jetP4 = self._p4_from_arrays(self.b_Electron_jetPt, self.b_Electron_jetEta, self.b_Electron_jetPhi, self.b_Electron_jetMass, i)
+                    self.out_Lepton3_Jet_p4 = self._copy_p4_from_lv(lepton3jetP4)
+
+        elif self.mode == "ElMuMu":
+            if nGoodElectrons >= 1 and nGoodMuons >= 1:
+                if nGoodElectrons >= 1:
+                    i = electronIdxs[0]
+                    lepton1P4 = self._p4_from_arrays(self.b_Electron_pt, self.b_Electron_eta, self.b_Electron_phi, self.b_Electron_mass, i)
+                    self.out_Lepton1_pdgId = -11 * int(self.b_Electron_charge.At(i))
+                    self.out_LeadingElectron_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_PFIso = float(self.b_Electron_pfRelIso03_all.At(i))
+                    lepton1jetP4 = self._p4_from_arrays(self.b_Electron_jetPt, self.b_Electron_jetEta, self.b_Electron_jetPhi, self.b_Electron_jetMass, i)
+                    self.out_Lepton1_Jet_p4 = self._copy_p4_from_lv(lepton1jetP4)
+                if nGoodMuons >= 1:
+                    i = muonIdxs[0]
+                    lepton2P4 = self._p4_from_arrays(self.b_Muon_pt, self.b_Muon_eta, self.b_Muon_phi, self.b_Muon_mass, i)
+                    self.out_Lepton2_pdgId = -13 * int(self.b_Muon_charge.At(i))
+                    self.out_LeadingMuon_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_PFIso = float(self.b_Muon_pfRelIso04_all.At(i))
+                    lepton2jetP4 = self._p4_from_arrays(self.b_Muon_jetPt, self.b_Muon_jetEta, self.b_Muon_jetPhi, self.b_Muon_jetMass, i)
+                    self.out_Lepton2_Jet_p4 = self._copy_p4_from_lv(lepton2jetP4)
+                if nGoodMuons >= 2:
+                    i = muonIdxs[1]
+                    lepton3P4 = self._p4_from_arrays(self.b_Muon_pt, self.b_Muon_eta, self.b_Muon_phi, self.b_Muon_mass, i)
+                    self.out_Lepton3_pdgId = -13 * int(self.b_Muon_charge.At(i))
+                    # Intentional port of the original intermediate assignment typo.
+                    self.out_Lepton3_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton3_PFIso = float(self.b_Muon_pfRelIso04_all.At(i))
+                    lepton3jetP4 = self._p4_from_arrays(self.b_Muon_jetPt, self.b_Muon_jetEta, self.b_Muon_jetPhi, self.b_Muon_jetMass, i)
+                    self.out_Lepton3_Jet_p4 = self._copy_p4_from_lv(lepton3jetP4)
+
+        elif self.mode == "ElElEl":
+            if nGoodElectrons >= 1:
+                if nGoodElectrons >= 1:
+                    i = electronIdxs[0]
+                    lepton1P4 = self._p4_from_arrays(self.b_Electron_pt, self.b_Electron_eta, self.b_Electron_phi, self.b_Electron_mass, i)
+                    self.out_Lepton1_pdgId = -11 * int(self.b_Electron_charge.At(i))
+                    self.out_LeadingElectron_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_PFIso = float(self.b_Electron_pfRelIso03_all.At(i))
+                    lepton1jetP4 = self._p4_from_arrays(self.b_Electron_jetPt, self.b_Electron_jetEta, self.b_Electron_jetPhi, self.b_Electron_jetMass, i)
+                    self.out_Lepton1_Jet_p4 = self._copy_p4_from_lv(lepton1jetP4)
+                if nGoodElectrons >= 2:
+                    i = electronIdxs[1]
+                    lepton2P4 = self._p4_from_arrays(self.b_Electron_pt, self.b_Electron_eta, self.b_Electron_phi, self.b_Electron_mass, i)
+                    self.out_Lepton2_pdgId = -11 * int(self.b_Electron_charge.At(i))
+                    self.out_Lepton2_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_PFIso = float(self.b_Electron_pfRelIso03_all.At(i))
+                    lepton2jetP4 = self._p4_from_arrays(self.b_Electron_jetPt, self.b_Electron_jetEta, self.b_Electron_jetPhi, self.b_Electron_jetMass, i)
+                    self.out_Lepton2_Jet_p4 = self._copy_p4_from_lv(lepton2jetP4)
+                if nGoodElectrons >= 3:
+                    i = electronIdxs[2]
+                    lepton3P4 = self._p4_from_arrays(self.b_Electron_pt, self.b_Electron_eta, self.b_Electron_phi, self.b_Electron_mass, i)
+                    self.out_Lepton3_pdgId = -11 * int(self.b_Electron_charge.At(i))
+                    self.out_Lepton3_p4 = self._copy_p4_from_lv(lepton3P4)
+                    self.out_Lepton3_PFIso = float(self.b_Electron_pfRelIso03_all.At(i))
+                    lepton3jetP4 = self._p4_from_arrays(self.b_Electron_jetPt, self.b_Electron_jetEta, self.b_Electron_jetPhi, self.b_Electron_jetMass, i)
+                    self.out_Lepton3_Jet_p4 = self._copy_p4_from_lv(lepton3jetP4)
+
+        elif self.mode == "MuMuMu":
+            if nGoodMuons >= 1:
+                if nGoodMuons >= 1:
+                    i = muonIdxs[0]
+                    lepton1P4 = self._p4_from_arrays(self.b_Muon_pt, self.b_Muon_eta, self.b_Muon_phi, self.b_Muon_mass, i)
+                    self.out_Lepton1_pdgId = -13 * int(self.b_Muon_charge.At(i))
+                    self.out_LeadingMuon_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_PFIso = float(self.b_Muon_pfRelIso04_all.At(i))
+                    lepton1jetP4 = self._p4_from_arrays(self.b_Muon_jetPt, self.b_Muon_jetEta, self.b_Muon_jetPhi, self.b_Muon_jetMass, i)
+                    self.out_Lepton1_Jet_p4 = self._copy_p4_from_lv(lepton1jetP4)
+                if nGoodMuons >= 2:
+                    i = muonIdxs[1]
+                    lepton2P4 = self._p4_from_arrays(self.b_Muon_pt, self.b_Muon_eta, self.b_Muon_phi, self.b_Muon_mass, i)
+                    self.out_Lepton2_pdgId = -13 * int(self.b_Muon_charge.At(i))
+                    self.out_Lepton2_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_PFIso = float(self.b_Muon_pfRelIso04_all.At(i))
+                    lepton2jetP4 = self._p4_from_arrays(self.b_Muon_jetPt, self.b_Muon_jetEta, self.b_Muon_jetPhi, self.b_Muon_jetMass, i)
+                    self.out_Lepton2_Jet_p4 = self._copy_p4_from_lv(lepton2jetP4)
+                if nGoodMuons >= 3:
+                    i = muonIdxs[2]
+                    lepton3P4 = self._p4_from_arrays(self.b_Muon_pt, self.b_Muon_eta, self.b_Muon_phi, self.b_Muon_mass, i)
+                    self.out_Lepton3_pdgId = -13 * int(self.b_Muon_charge.At(i))
+                    self.out_Lepton3_p4 = self._copy_p4_from_lv(lepton3P4)
+                    self.out_Lepton3_PFIso = float(self.b_Muon_pfRelIso04_all.At(i))
+                    lepton3jetP4 = self._p4_from_arrays(self.b_Muon_jetPt, self.b_Muon_jetEta, self.b_Muon_jetPhi, self.b_Muon_jetMass, i)
+                    self.out_Lepton3_Jet_p4 = self._copy_p4_from_lv(lepton3jetP4)
+
+        elif self.mode == "TaTaTa":
+            if nGoodTaus >= 1:
+                if nGoodTaus >= 1:
+                    i = tauIdxs[0]
+                    lepton1P4 = self._p4_from_arrays(self.b_Tau_pt, self.b_Tau_eta, self.b_Tau_phi, self.b_Tau_mass, i)
+                    self.out_Lepton1_pdgId = -15 * int(self.b_Tau_charge.At(i))
+                    self.out_LeadingTau_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_PFIso = float(self.b_Tau_rawIso.At(i))
+                    self.out_Lepton1_tauDecayMode = int(self.b_Tau_decayMode.At(i))
+                    self.out_Lepton1_tauGenPartFlav = self._tau_genpartflav(i)
+                    self.out_Lepton1_tauProng = self._tau_prong_group_from_decaymode(self.out_Lepton1_tauDecayMode)
+                    self.out_Lepton1_jetPtRatio = self._tau_jet_pt_ratio(i)
+                    lepton1jetP4 = self._tau_matched_jet_p4(i)
+                    self.out_Lepton1_Jet_p4 = self._copy_p4_from_lv(lepton1jetP4)
+                    self.out_Lepton1_jetBTagDeepFlavor = self._tau_matched_jet_btag(i)
+                if nGoodTaus >= 2:
+                    i = tauIdxs[1]
+                    lepton2P4 = self._p4_from_arrays(self.b_Tau_pt, self.b_Tau_eta, self.b_Tau_phi, self.b_Tau_mass, i)
+                    self.out_Lepton2_pdgId = -15 * int(self.b_Tau_charge.At(i))
+                    self.out_Lepton2_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_PFIso = float(self.b_Tau_rawIso.At(i))
+                    self.out_Lepton2_tauDecayMode = int(self.b_Tau_decayMode.At(i))
+                    self.out_Lepton2_tauGenPartFlav = self._tau_genpartflav(i)
+                    self.out_Lepton2_tauProng = self._tau_prong_group_from_decaymode(self.out_Lepton2_tauDecayMode)
+                    self.out_Lepton2_jetPtRatio = self._tau_jet_pt_ratio(i)
+                    lepton2jetP4 = self._tau_matched_jet_p4(i)
+                    self.out_Lepton2_Jet_p4 = self._copy_p4_from_lv(lepton2jetP4)
+                    self.out_Lepton2_jetBTagDeepFlavor = self._tau_matched_jet_btag(i)
+                if nGoodTaus >= 3:
+                    i = tauIdxs[2]
+                    lepton3P4 = self._p4_from_arrays(self.b_Tau_pt, self.b_Tau_eta, self.b_Tau_phi, self.b_Tau_mass, i)
+                    self.out_Lepton3_pdgId = -15 * int(self.b_Tau_charge.At(i))
+                    self.out_Lepton3_p4 = self._copy_p4_from_lv(lepton3P4)
+                    self.out_Lepton3_PFIso = float(self.b_Tau_rawIso.At(i))
+                    self.out_Lepton3_tauDecayMode = int(self.b_Tau_decayMode.At(i))
+                    self.out_Lepton3_tauGenPartFlav = self._tau_genpartflav(i)
+                    self.out_Lepton3_tauProng = self._tau_prong_group_from_decaymode(self.out_Lepton3_tauDecayMode)
+                    self.out_Lepton3_jetPtRatio = self._tau_jet_pt_ratio(i)
+                    lepton3jetP4 = self._tau_matched_jet_p4(i)
+                    self.out_Lepton3_Jet_p4 = self._copy_p4_from_lv(lepton3jetP4)
+                    self.out_Lepton3_jetBTagDeepFlavor = self._tau_matched_jet_btag(i)
+
+        elif self.mode == "ElTaTa":
+            if nGoodElectrons >= 1 and nGoodTaus >= 1:
+                if nGoodElectrons >= 1:
+                    i = electronIdxs[0]
+                    lepton1P4 = self._p4_from_arrays(self.b_Electron_pt, self.b_Electron_eta, self.b_Electron_phi, self.b_Electron_mass, i)
+                    self.out_Lepton1_pdgId = -11 * int(self.b_Electron_charge.At(i))
+                    self.out_LeadingElectron_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_PFIso = float(self.b_Electron_pfRelIso03_all.At(i))
+                    lepton1jetP4 = self._p4_from_arrays(self.b_Electron_jetPt, self.b_Electron_jetEta, self.b_Electron_jetPhi, self.b_Electron_jetMass, i)
+                    self.out_Lepton1_Jet_p4 = self._copy_p4_from_lv(lepton1jetP4)
+                if nGoodTaus >= 1:
+                    i = tauIdxs[0]
+                    lepton2P4 = self._p4_from_arrays(self.b_Tau_pt, self.b_Tau_eta, self.b_Tau_phi, self.b_Tau_mass, i)
+                    self.out_Lepton2_pdgId = -15 * int(self.b_Tau_charge.At(i))
+                    self.out_LeadingTau_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_PFIso = float(self.b_Tau_rawIso.At(i))
+                    self.out_Lepton2_tauDecayMode = int(self.b_Tau_decayMode.At(i))
+                    self.out_Lepton2_tauGenPartFlav = self._tau_genpartflav(i)
+                    self.out_Lepton2_tauProng = self._tau_prong_group_from_decaymode(self.out_Lepton2_tauDecayMode)
+                    self.out_Lepton2_jetPtRatio = self._tau_jet_pt_ratio(i)
+                    lepton2jetP4 = self._tau_matched_jet_p4(i)
+                    self.out_Lepton2_Jet_p4 = self._copy_p4_from_lv(lepton2jetP4)
+                    self.out_Lepton2_jetBTagDeepFlavor = self._tau_matched_jet_btag(i)
+                if nGoodTaus >= 2:
+                    i = tauIdxs[1]
+                    lepton3P4 = self._p4_from_arrays(self.b_Tau_pt, self.b_Tau_eta, self.b_Tau_phi, self.b_Tau_mass, i)
+                    self.out_Lepton3_pdgId = -15 * int(self.b_Tau_charge.At(i))
+                    self.out_Lepton3_p4 = self._copy_p4_from_lv(lepton3P4)
+                    self.out_Lepton3_PFIso = float(self.b_Tau_rawIso.At(i))
+                    self.out_Lepton3_tauDecayMode = int(self.b_Tau_decayMode.At(i))
+                    self.out_Lepton3_tauGenPartFlav = self._tau_genpartflav(i)
+                    self.out_Lepton3_tauProng = self._tau_prong_group_from_decaymode(self.out_Lepton3_tauDecayMode)
+                    self.out_Lepton3_jetPtRatio = self._tau_jet_pt_ratio(i)
+                    lepton3jetP4 = self._tau_matched_jet_p4(i)
+                    self.out_Lepton3_Jet_p4 = self._copy_p4_from_lv(lepton3jetP4)
+                    self.out_Lepton3_jetBTagDeepFlavor = self._tau_matched_jet_btag(i)
+
+        elif self.mode == "MuTaTa":
+            if nGoodMuons >= 1 and nGoodTaus >= 1:
+                if nGoodMuons >= 1:
+                    i = muonIdxs[0]
+                    lepton1P4 = self._p4_from_arrays(self.b_Muon_pt, self.b_Muon_eta, self.b_Muon_phi, self.b_Muon_mass, i)
+                    self.out_Lepton1_pdgId = -13 * int(self.b_Muon_charge.At(i))
+                    self.out_LeadingMuon_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_PFIso = float(self.b_Muon_pfRelIso04_all.At(i))
+                    lepton1jetP4 = self._p4_from_arrays(self.b_Muon_jetPt, self.b_Muon_jetEta, self.b_Muon_jetPhi, self.b_Muon_jetMass, i)
+                    self.out_Lepton1_Jet_p4 = self._copy_p4_from_lv(lepton1jetP4)
+                if nGoodTaus >= 1:
+                    i = tauIdxs[0]
+                    lepton2P4 = self._p4_from_arrays(self.b_Tau_pt, self.b_Tau_eta, self.b_Tau_phi, self.b_Tau_mass, i)
+                    self.out_Lepton2_pdgId = -15 * int(self.b_Tau_charge.At(i))
+                    self.out_LeadingTau_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_PFIso = float(self.b_Tau_rawIso.At(i))
+                    self.out_Lepton2_tauDecayMode = int(self.b_Tau_decayMode.At(i))
+                    self.out_Lepton2_tauGenPartFlav = self._tau_genpartflav(i)
+                    self.out_Lepton2_tauProng = self._tau_prong_group_from_decaymode(self.out_Lepton2_tauDecayMode)
+                    self.out_Lepton2_jetPtRatio = self._tau_jet_pt_ratio(i)
+                    lepton2jetP4 = self._tau_matched_jet_p4(i)
+                    self.out_Lepton2_Jet_p4 = self._copy_p4_from_lv(lepton2jetP4)
+                    self.out_Lepton2_jetBTagDeepFlavor = self._tau_matched_jet_btag(i)
+                if nGoodTaus >= 2:
+                    i = tauIdxs[1]
+                    lepton3P4 = self._p4_from_arrays(self.b_Tau_pt, self.b_Tau_eta, self.b_Tau_phi, self.b_Tau_mass, i)
+                    self.out_Lepton3_pdgId = -15 * int(self.b_Tau_charge.At(i))
+                    self.out_Lepton3_p4 = self._copy_p4_from_lv(lepton3P4)
+                    self.out_Lepton3_PFIso = float(self.b_Tau_rawIso.At(i))
+                    self.out_Lepton3_tauDecayMode = int(self.b_Tau_decayMode.At(i))
+                    self.out_Lepton3_tauGenPartFlav = self._tau_genpartflav(i)
+                    self.out_Lepton3_tauProng = self._tau_prong_group_from_decaymode(self.out_Lepton3_tauDecayMode)
+                    self.out_Lepton3_jetPtRatio = self._tau_jet_pt_ratio(i)
+                    lepton3jetP4 = self._tau_matched_jet_p4(i)
+                    self.out_Lepton3_Jet_p4 = self._copy_p4_from_lv(lepton3jetP4)
+                    self.out_Lepton3_jetBTagDeepFlavor = self._tau_matched_jet_btag(i)
+
+        elif self.mode == "TaElEl":
+            if nGoodTaus >= 1 and nGoodElectrons >= 1:
+                if nGoodTaus >= 1:
+                    i = tauIdxs[0]
+                    lepton1P4 = self._p4_from_arrays(self.b_Tau_pt, self.b_Tau_eta, self.b_Tau_phi, self.b_Tau_mass, i)
+                    self.out_Lepton1_pdgId = -15 * int(self.b_Tau_charge.At(i))
+                    self.out_LeadingTau_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_PFIso = float(self.b_Tau_rawIso.At(i))
+                    self.out_Lepton1_tauDecayMode = int(self.b_Tau_decayMode.At(i))
+                    self.out_Lepton1_tauGenPartFlav = self._tau_genpartflav(i)
+                    self.out_Lepton1_tauProng = self._tau_prong_group_from_decaymode(self.out_Lepton1_tauDecayMode)
+                    self.out_Lepton1_jetPtRatio = self._tau_jet_pt_ratio(i)
+                    lepton1jetP4 = self._tau_matched_jet_p4(i)
+                    self.out_Lepton1_Jet_p4 = self._copy_p4_from_lv(lepton1jetP4)
+                    self.out_Lepton1_jetBTagDeepFlavor = self._tau_matched_jet_btag(i)
+                if nGoodElectrons >= 1:
+                    i = electronIdxs[0]
+                    lepton2P4 = self._p4_from_arrays(self.b_Electron_pt, self.b_Electron_eta, self.b_Electron_phi, self.b_Electron_mass, i)
+                    self.out_Lepton2_pdgId = -11 * int(self.b_Electron_charge.At(i))
+                    self.out_LeadingElectron_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_PFIso = float(self.b_Electron_pfRelIso03_all.At(i))
+                    lepton2jetP4 = self._p4_from_arrays(self.b_Electron_jetPt, self.b_Electron_jetEta, self.b_Electron_jetPhi, self.b_Electron_jetMass, i)
+                    self.out_Lepton2_Jet_p4 = self._copy_p4_from_lv(lepton2jetP4)
+                if nGoodElectrons >= 2:
+                    i = electronIdxs[1]
+                    lepton3P4 = self._p4_from_arrays(self.b_Electron_pt, self.b_Electron_eta, self.b_Electron_phi, self.b_Electron_mass, i)
+                    self.out_Lepton3_pdgId = -11 * int(self.b_Electron_charge.At(i))
+                    self.out_Lepton3_p4 = self._copy_p4_from_lv(lepton3P4)
+                    self.out_Lepton3_PFIso = float(self.b_Electron_pfRelIso03_all.At(i))
+                    lepton3jetP4 = self._p4_from_arrays(self.b_Electron_jetPt, self.b_Electron_jetEta, self.b_Electron_jetPhi, self.b_Electron_jetMass, i)
+                    self.out_Lepton3_Jet_p4 = self._copy_p4_from_lv(lepton3jetP4)
+
+        elif self.mode == "TaMuMu":
+            if nGoodTaus >= 1 and nGoodMuons >= 1:
+                if nGoodTaus >= 1:
+                    i = tauIdxs[0]
+                    lepton1P4 = self._p4_from_arrays(self.b_Tau_pt, self.b_Tau_eta, self.b_Tau_phi, self.b_Tau_mass, i)
+                    self.out_Lepton1_pdgId = -15 * int(self.b_Tau_charge.At(i))
+                    self.out_LeadingTau_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_PFIso = float(self.b_Tau_rawIso.At(i))
+                    self.out_Lepton1_tauDecayMode = int(self.b_Tau_decayMode.At(i))
+                    self.out_Lepton1_tauGenPartFlav = self._tau_genpartflav(i)
+                    self.out_Lepton1_tauProng = self._tau_prong_group_from_decaymode(self.out_Lepton1_tauDecayMode)
+                    self.out_Lepton1_jetPtRatio = self._tau_jet_pt_ratio(i)
+                    lepton1jetP4 = self._tau_matched_jet_p4(i)
+                    self.out_Lepton1_Jet_p4 = self._copy_p4_from_lv(lepton1jetP4)
+                    self.out_Lepton1_jetBTagDeepFlavor = self._tau_matched_jet_btag(i)
+                if nGoodMuons >= 1:
+                    i = muonIdxs[0]
+                    lepton2P4 = self._p4_from_arrays(self.b_Muon_pt, self.b_Muon_eta, self.b_Muon_phi, self.b_Muon_mass, i)
+                    self.out_Lepton2_pdgId = -13 * int(self.b_Muon_charge.At(i))
+                    self.out_LeadingMuon_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_PFIso = float(self.b_Muon_pfRelIso04_all.At(i))
+                    lepton2jetP4 = self._p4_from_arrays(self.b_Muon_jetPt, self.b_Muon_jetEta, self.b_Muon_jetPhi, self.b_Muon_jetMass, i)
+                    self.out_Lepton2_Jet_p4 = self._copy_p4_from_lv(lepton2jetP4)
+                if nGoodMuons >= 2:
+                    i = muonIdxs[1]
+                    lepton3P4 = self._p4_from_arrays(self.b_Muon_pt, self.b_Muon_eta, self.b_Muon_phi, self.b_Muon_mass, i)
+                    self.out_Lepton3_pdgId = -13 * int(self.b_Muon_charge.At(i))
+                    self.out_Lepton3_p4 = self._copy_p4_from_lv(lepton3P4)
+                    self.out_Lepton3_PFIso = float(self.b_Muon_pfRelIso04_all.At(i))
+                    lepton3jetP4 = self._p4_from_arrays(self.b_Muon_jetPt, self.b_Muon_jetEta, self.b_Muon_jetPhi, self.b_Muon_jetMass, i)
+                    self.out_Lepton3_Jet_p4 = self._copy_p4_from_lv(lepton3jetP4)
+
+        # --------------------------------------------------------------
+        # NPL selections
+        # --------------------------------------------------------------
+        elif self.mode == "NPLMuElEl":
+            if nNPMuons >= 1 and nNPElectrons >= 1:
+                if nNPMuons >= 1:
+                    i = npMuonIdxs[0]
+                    lepton1P4 = self._p4_from_arrays(self.b_Muon_pt, self.b_Muon_eta, self.b_Muon_phi, self.b_Muon_mass, i)
+                    self.out_Lepton1_pdgId = -13 * int(self.b_Muon_charge.At(i))
+                    self.out_LeadingMuon_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_PFIso = float(self.b_Muon_pfRelIso04_all.At(i))
+                    self.out_Lepton1_jetPtRatio = float(self.b_Muon_jetPtRatio.At(i))
+                    lepton1jetP4 = self._p4_from_arrays(self.b_Muon_jetPt, self.b_Muon_jetEta, self.b_Muon_jetPhi, self.b_Muon_jetMass, i)
+                    self.out_Lepton1_Jet_p4 = self._copy_p4_from_lv(lepton1jetP4)
+                    self.out_Lepton1_mvaTOP = float(self.b_Muon_mvaTOP.At(i))
+                    if self.isGoodMuon(i):
+                        self.out_Lepton1_isTight = True
+                    if self.isOnlyFakeMuon(i):
+                        self.out_Lepton1_isFake = True
+                if nNPElectrons >= 1:
+                    i = npElectronIdxs[0]
+                    lepton2P4 = self._p4_from_arrays(self.b_Electron_pt, self.b_Electron_eta, self.b_Electron_phi, self.b_Electron_mass, i)
+                    self.out_Lepton2_pdgId = -11 * int(self.b_Electron_charge.At(i))
+                    self.out_LeadingElectron_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_PFIso = float(self.b_Electron_pfRelIso03_all.At(i))
+                    self.out_Lepton2_jetPtRatio = float(self.b_Electron_jetPtRatio.At(i))
+                    lepton2jetP4 = self._p4_from_arrays(self.b_Electron_jetPt, self.b_Electron_jetEta, self.b_Electron_jetPhi, self.b_Electron_jetMass, i)
+                    self.out_Lepton2_Jet_p4 = self._copy_p4_from_lv(lepton2jetP4)
+                    self.out_Lepton2_mvaTOP = float(self.b_Electron_mvaTOP.At(i))
+                    if self.isGoodElectron(i):
+                        self.out_Lepton2_isTight = True
+                    if self.isOnlyFakeElectron(i):
+                        self.out_Lepton2_isFake = True
+                if nNPElectrons >= 2:
+                    i = npElectronIdxs[1]
+                    lepton3P4 = self._p4_from_arrays(self.b_Electron_pt, self.b_Electron_eta, self.b_Electron_phi, self.b_Electron_mass, i)
+                    self.out_Lepton3_pdgId = -11 * int(self.b_Electron_charge.At(i))
+                    self.out_Lepton3_p4 = self._copy_p4_from_lv(lepton3P4)
+                    self.out_Lepton3_PFIso = float(self.b_Electron_pfRelIso03_all.At(i))
+                    self.out_Lepton3_jetPtRatio = float(self.b_Electron_jetPtRatio.At(i))
+                    lepton3jetP4 = self._p4_from_arrays(self.b_Electron_jetPt, self.b_Electron_jetEta, self.b_Electron_jetPhi, self.b_Electron_jetMass, i)
+                    self.out_Lepton3_Jet_p4 = self._copy_p4_from_lv(lepton3jetP4)
+                    # Intentional port of the original typo in FCNCTriLeptonCppWorker.cc.
+                    self.out_Lepton2_mvaTOP = float(self.b_Electron_mvaTOP.At(i))
+                    if self.isGoodElectron(i):
+                        self.out_Lepton3_isTight = True
+                    if self.isOnlyFakeElectron(i):
+                        self.out_Lepton3_isFake = True
+
+        elif self.mode == "NPLElMuMu":
+            if nNPElectrons >= 1 and nNPMuons >= 1:
+                if nNPElectrons >= 1:
+                    i = npElectronIdxs[0]
+                    lepton1P4 = self._p4_from_arrays(self.b_Electron_pt, self.b_Electron_eta, self.b_Electron_phi, self.b_Electron_mass, i)
+                    self.out_Lepton1_pdgId = -11 * int(self.b_Electron_charge.At(i))
+                    self.out_LeadingElectron_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_PFIso = float(self.b_Electron_pfRelIso03_all.At(i))
+                    self.out_Lepton1_jetPtRatio = float(self.b_Electron_jetPtRatio.At(i))
+                    lepton1jetP4 = self._p4_from_arrays(self.b_Electron_jetPt, self.b_Electron_jetEta, self.b_Electron_jetPhi, self.b_Electron_jetMass, i)
+                    self.out_Lepton1_Jet_p4 = self._copy_p4_from_lv(lepton1jetP4)
+                    self.out_Lepton1_mvaTOP = float(self.b_Electron_mvaTOP.At(i))
+                    if self.isGoodElectron(i):
+                        self.out_Lepton1_isTight = True
+                    if self.isOnlyFakeElectron(i):
+                        self.out_Lepton1_isFake = True
+                if nNPMuons >= 1:
+                    i = npMuonIdxs[0]
+                    lepton2P4 = self._p4_from_arrays(self.b_Muon_pt, self.b_Muon_eta, self.b_Muon_phi, self.b_Muon_mass, i)
+                    self.out_Lepton2_pdgId = -13 * int(self.b_Muon_charge.At(i))
+                    self.out_LeadingMuon_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_PFIso = float(self.b_Muon_pfRelIso04_all.At(i))
+                    self.out_Lepton2_jetPtRatio = float(self.b_Muon_jetPtRatio.At(i))
+                    lepton2jetP4 = self._p4_from_arrays(self.b_Muon_jetPt, self.b_Muon_jetEta, self.b_Muon_jetPhi, self.b_Muon_jetMass, i)
+                    self.out_Lepton2_Jet_p4 = self._copy_p4_from_lv(lepton2jetP4)
+                    self.out_Lepton2_mvaTOP = float(self.b_Muon_mvaTOP.At(i))
+                    if self.isGoodMuon(i):
+                        self.out_Lepton2_isTight = True
+                    if self.isOnlyFakeMuon(i):
+                        self.out_Lepton2_isFake = True
+                if nNPMuons >= 2:
+                    i = npMuonIdxs[1]
+                    lepton3P4 = self._p4_from_arrays(self.b_Muon_pt, self.b_Muon_eta, self.b_Muon_phi, self.b_Muon_mass, i)
+                    self.out_Lepton3_pdgId = -13 * int(self.b_Muon_charge.At(i))
+                    self.out_Lepton3_p4 = self._copy_p4_from_lv(lepton3P4)
+                    self.out_Lepton3_PFIso = float(self.b_Muon_pfRelIso04_all.At(i))
+                    self.out_Lepton3_jetPtRatio = float(self.b_Muon_jetPtRatio.At(i))
+                    lepton3jetP4 = self._p4_from_arrays(self.b_Muon_jetPt, self.b_Muon_jetEta, self.b_Muon_jetPhi, self.b_Muon_jetMass, i)
+                    self.out_Lepton3_Jet_p4 = self._copy_p4_from_lv(lepton3jetP4)
+                    self.out_Lepton3_mvaTOP = float(self.b_Muon_mvaTOP.At(i))
+                    if self.isGoodMuon(i):
+                        self.out_Lepton3_isTight = True
+                    if self.isOnlyFakeMuon(i):
+                        self.out_Lepton3_isFake = True
+
+        elif self.mode == "NPLElElEl":
+            if nNPElectrons >= 1:
+                if nNPElectrons >= 1:
+                    i = npElectronIdxs[0]
+                    lepton1P4 = self._p4_from_arrays(self.b_Electron_pt, self.b_Electron_eta, self.b_Electron_phi, self.b_Electron_mass, i)
+                    self.out_Lepton1_pdgId = -11 * int(self.b_Electron_charge.At(i))
+                    self.out_LeadingElectron_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_PFIso = float(self.b_Electron_pfRelIso03_all.At(i))
+                    self.out_Lepton1_jetPtRatio = float(self.b_Electron_jetPtRatio.At(i))
+                    lepton1jetP4 = self._p4_from_arrays(self.b_Electron_jetPt, self.b_Electron_jetEta, self.b_Electron_jetPhi, self.b_Electron_jetMass, i)
+                    self.out_Lepton1_Jet_p4 = self._copy_p4_from_lv(lepton1jetP4)
+                    self.out_Lepton1_mvaTOP = float(self.b_Electron_mvaTOP.At(i))
+                    if self.isGoodElectron(i):
+                        self.out_Lepton1_isTight = True
+                    if self.isOnlyFakeElectron(i):
+                        self.out_Lepton1_isFake = True
+                if nNPElectrons >= 2:
+                    i = npElectronIdxs[1]
+                    lepton2P4 = self._p4_from_arrays(self.b_Electron_pt, self.b_Electron_eta, self.b_Electron_phi, self.b_Electron_mass, i)
+                    self.out_Lepton2_pdgId = -11 * int(self.b_Electron_charge.At(i))
+                    self.out_Lepton2_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_PFIso = float(self.b_Electron_pfRelIso03_all.At(i))
+                    self.out_Lepton2_jetPtRatio = float(self.b_Electron_jetPtRatio.At(i))
+                    lepton2jetP4 = self._p4_from_arrays(self.b_Electron_jetPt, self.b_Electron_jetEta, self.b_Electron_jetPhi, self.b_Electron_jetMass, i)
+                    self.out_Lepton2_Jet_p4 = self._copy_p4_from_lv(lepton2jetP4)
+                    self.out_Lepton2_mvaTOP = float(self.b_Electron_mvaTOP.At(i))
+                    if self.isGoodElectron(i):
+                        self.out_Lepton2_isTight = True
+                    if self.isOnlyFakeElectron(i):
+                        self.out_Lepton2_isFake = True
+                if nNPElectrons >= 3:
+                    i = npElectronIdxs[2]
+                    lepton3P4 = self._p4_from_arrays(self.b_Electron_pt, self.b_Electron_eta, self.b_Electron_phi, self.b_Electron_mass, i)
+                    self.out_Lepton3_pdgId = -11 * int(self.b_Electron_charge.At(i))
+                    self.out_Lepton3_p4 = self._copy_p4_from_lv(lepton3P4)
+                    self.out_Lepton3_PFIso = float(self.b_Electron_pfRelIso03_all.At(i))
+                    self.out_Lepton3_jetPtRatio = float(self.b_Electron_jetPtRatio.At(i))
+                    lepton3jetP4 = self._p4_from_arrays(self.b_Electron_jetPt, self.b_Electron_jetEta, self.b_Electron_jetPhi, self.b_Electron_jetMass, i)
+                    self.out_Lepton3_Jet_p4 = self._copy_p4_from_lv(lepton3jetP4)
+                    self.out_Lepton3_mvaTOP = float(self.b_Electron_mvaTOP.At(i))
+                    if self.isGoodElectron(i):
+                        self.out_Lepton3_isTight = True
+                    if self.isOnlyFakeElectron(i):
+                        self.out_Lepton3_isFake = True
+
+        elif self.mode == "NPLMuMuMu":
+            if nNPMuons >= 1:
+                if nNPMuons >= 1:
+                    i = npMuonIdxs[0]
+                    lepton1P4 = self._p4_from_arrays(self.b_Muon_pt, self.b_Muon_eta, self.b_Muon_phi, self.b_Muon_mass, i)
+                    self.out_Lepton1_pdgId = -13 * int(self.b_Muon_charge.At(i))
+                    self.out_LeadingMuon_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_PFIso = float(self.b_Muon_pfRelIso04_all.At(i))
+                    self.out_Lepton1_jetPtRatio = float(self.b_Muon_jetPtRatio.At(i))
+                    lepton1jetP4 = self._p4_from_arrays(self.b_Muon_jetPt, self.b_Muon_jetEta, self.b_Muon_jetPhi, self.b_Muon_jetMass, i)
+                    self.out_Lepton1_Jet_p4 = self._copy_p4_from_lv(lepton1jetP4)
+                    self.out_Lepton1_mvaTOP = float(self.b_Muon_mvaTOP.At(i))
+                    if self.isGoodMuon(i):
+                        self.out_Lepton1_isTight = True
+                    if self.isOnlyFakeMuon(i):
+                        self.out_Lepton1_isFake = True
+                if nNPMuons >= 2:
+                    i = npMuonIdxs[1]
+                    lepton2P4 = self._p4_from_arrays(self.b_Muon_pt, self.b_Muon_eta, self.b_Muon_phi, self.b_Muon_mass, i)
+                    self.out_Lepton2_pdgId = -13 * int(self.b_Muon_charge.At(i))
+                    self.out_Lepton2_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_PFIso = float(self.b_Muon_pfRelIso04_all.At(i))
+                    self.out_Lepton2_jetPtRatio = float(self.b_Muon_jetPtRatio.At(i))
+                    lepton2jetP4 = self._p4_from_arrays(self.b_Muon_jetPt, self.b_Muon_jetEta, self.b_Muon_jetPhi, self.b_Muon_jetMass, i)
+                    self.out_Lepton2_Jet_p4 = self._copy_p4_from_lv(lepton2jetP4)
+                    self.out_Lepton2_mvaTOP = float(self.b_Muon_mvaTOP.At(i))
+                    if self.isGoodMuon(i):
+                        self.out_Lepton2_isTight = True
+                    if self.isOnlyFakeMuon(i):
+                        self.out_Lepton2_isFake = True
+                if nNPMuons >= 3:
+                    i = npMuonIdxs[2]
+                    lepton3P4 = self._p4_from_arrays(self.b_Muon_pt, self.b_Muon_eta, self.b_Muon_phi, self.b_Muon_mass, i)
+                    self.out_Lepton3_pdgId = -13 * int(self.b_Muon_charge.At(i))
+                    self.out_Lepton3_p4 = self._copy_p4_from_lv(lepton3P4)
+                    self.out_Lepton3_PFIso = float(self.b_Muon_pfRelIso04_all.At(i))
+                    self.out_Lepton3_jetPtRatio = float(self.b_Muon_jetPtRatio.At(i))
+                    lepton3jetP4 = self._p4_from_arrays(self.b_Muon_jetPt, self.b_Muon_jetEta, self.b_Muon_jetPhi, self.b_Muon_jetMass, i)
+                    self.out_Lepton3_Jet_p4 = self._copy_p4_from_lv(lepton3jetP4)
+                    self.out_Lepton3_mvaTOP = float(self.b_Muon_mvaTOP.At(i))
+                    if self.isGoodMuon(i):
+                        self.out_Lepton3_isTight = True
+                    if self.isOnlyFakeMuon(i):
+                        self.out_Lepton3_isFake = True
+
+        elif self.mode == "NPLTaTaTa":
+            if nNPTaus >= 1:
+                if nNPTaus >= 1:
+                    i = npTauIdxs[0]
+                    lepton1P4 = self._p4_from_arrays(self.b_Tau_pt, self.b_Tau_eta, self.b_Tau_phi, self.b_Tau_mass, i)
+                    self.out_Lepton1_pdgId = -15 * int(self.b_Tau_charge.At(i))
+                    self.out_LeadingTau_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_PFIso = float(self.b_Tau_rawIso.At(i))
+                    self.out_Lepton1_tauDecayMode = int(self.b_Tau_decayMode.At(i))
+                    self.out_Lepton1_tauGenPartFlav = self._tau_genpartflav(i)
+                    self.out_Lepton1_tauProng = self._tau_prong_group_from_decaymode(self.out_Lepton1_tauDecayMode)
+                    self.out_Lepton1_jetPtRatio = self._tau_jet_pt_ratio(i)
+                    lepton1jetP4 = self._tau_matched_jet_p4(i)
+                    self.out_Lepton1_Jet_p4 = self._copy_p4_from_lv(lepton1jetP4)
+                    self.out_Lepton1_jetBTagDeepFlavor = self._tau_matched_jet_btag(i)
+                    if self.isGoodTau(i, npElectronIdxs, npMuonIdxs):
+                        self.out_Lepton1_isTight = True
+                    if self.isOnlyFakeTau(i, npElectronIdxs, npMuonIdxs):
+                        self.out_Lepton1_isFake = True
+                if nNPTaus >= 2:
+                    i = npTauIdxs[1]
+                    lepton2P4 = self._p4_from_arrays(self.b_Tau_pt, self.b_Tau_eta, self.b_Tau_phi, self.b_Tau_mass, i)
+                    self.out_Lepton2_pdgId = -15 * int(self.b_Tau_charge.At(i))
+                    self.out_Lepton2_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_PFIso = float(self.b_Tau_rawIso.At(i))
+                    self.out_Lepton2_tauDecayMode = int(self.b_Tau_decayMode.At(i))
+                    self.out_Lepton2_tauGenPartFlav = self._tau_genpartflav(i)
+                    self.out_Lepton2_tauProng = self._tau_prong_group_from_decaymode(self.out_Lepton2_tauDecayMode)
+                    self.out_Lepton2_jetPtRatio = self._tau_jet_pt_ratio(i)
+                    lepton2jetP4 = self._tau_matched_jet_p4(i)
+                    self.out_Lepton2_Jet_p4 = self._copy_p4_from_lv(lepton2jetP4)
+                    self.out_Lepton2_jetBTagDeepFlavor = self._tau_matched_jet_btag(i)
+                    if self.isGoodTau(i, npElectronIdxs, npMuonIdxs):
+                        self.out_Lepton2_isTight = True
+                    if self.isOnlyFakeTau(i, npElectronIdxs, npMuonIdxs):
+                        self.out_Lepton2_isFake = True
+                if nNPTaus >= 3:
+                    i = npTauIdxs[2]
+                    lepton3P4 = self._p4_from_arrays(self.b_Tau_pt, self.b_Tau_eta, self.b_Tau_phi, self.b_Tau_mass, i)
+                    self.out_Lepton3_pdgId = -15 * int(self.b_Tau_charge.At(i))
+                    self.out_Lepton3_p4 = self._copy_p4_from_lv(lepton3P4)
+                    self.out_Lepton3_PFIso = float(self.b_Tau_rawIso.At(i))
+                    self.out_Lepton3_tauDecayMode = int(self.b_Tau_decayMode.At(i))
+                    self.out_Lepton3_tauGenPartFlav = self._tau_genpartflav(i)
+                    self.out_Lepton3_tauProng = self._tau_prong_group_from_decaymode(self.out_Lepton3_tauDecayMode)
+                    self.out_Lepton3_jetPtRatio = self._tau_jet_pt_ratio(i)
+                    lepton3jetP4 = self._tau_matched_jet_p4(i)
+                    self.out_Lepton3_Jet_p4 = self._copy_p4_from_lv(lepton3jetP4)
+                    self.out_Lepton3_jetBTagDeepFlavor = self._tau_matched_jet_btag(i)
+                    if self.isGoodTau(i, npElectronIdxs, npMuonIdxs):
+                        self.out_Lepton3_isTight = True
+                    if self.isOnlyFakeTau(i, npElectronIdxs, npMuonIdxs):
+                        self.out_Lepton3_isFake = True
+
+        elif self.mode == "NPLElTaTa":
+            if nNPElectrons >= 1 and nNPTaus >= 1:
+                if nNPElectrons >= 1:
+                    i = npElectronIdxs[0]
+                    lepton1P4 = self._p4_from_arrays(self.b_Electron_pt, self.b_Electron_eta, self.b_Electron_phi, self.b_Electron_mass, i)
+                    self.out_Lepton1_pdgId = -11 * int(self.b_Electron_charge.At(i))
+                    self.out_LeadingElectron_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_PFIso = float(self.b_Electron_pfRelIso03_all.At(i))
+                    self.out_Lepton1_jetPtRatio = float(self.b_Electron_jetPtRatio.At(i))
+                    lepton1jetP4 = self._p4_from_arrays(self.b_Electron_jetPt, self.b_Electron_jetEta, self.b_Electron_jetPhi, self.b_Electron_jetMass, i)
+                    self.out_Lepton1_Jet_p4 = self._copy_p4_from_lv(lepton1jetP4)
+                    self.out_Lepton1_mvaTOP = float(self.b_Electron_mvaTOP.At(i))
+                    if self.isGoodElectron(i):
+                        self.out_Lepton1_isTight = True
+                    if self.isOnlyFakeElectron(i):
+                        self.out_Lepton1_isFake = True
+                if nNPTaus >= 1:
+                    i = npTauIdxs[0]
+                    lepton2P4 = self._p4_from_arrays(self.b_Tau_pt, self.b_Tau_eta, self.b_Tau_phi, self.b_Tau_mass, i)
+                    self.out_Lepton2_pdgId = -15 * int(self.b_Tau_charge.At(i))
+                    self.out_Lepton2_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_PFIso = float(self.b_Tau_rawIso.At(i))
+                    self.out_Lepton2_tauDecayMode = int(self.b_Tau_decayMode.At(i))
+                    self.out_Lepton2_tauGenPartFlav = self._tau_genpartflav(i)
+                    self.out_Lepton2_tauProng = self._tau_prong_group_from_decaymode(self.out_Lepton2_tauDecayMode)
+                    self.out_Lepton2_jetPtRatio = self._tau_jet_pt_ratio(i)
+                    lepton2jetP4 = self._tau_matched_jet_p4(i)
+                    self.out_Lepton2_Jet_p4 = self._copy_p4_from_lv(lepton2jetP4)
+                    self.out_Lepton2_jetBTagDeepFlavor = self._tau_matched_jet_btag(i)
+                    if self.isGoodTau(i, npElectronIdxs, npMuonIdxs):
+                        self.out_Lepton2_isTight = True
+                    if self.isOnlyFakeTau(i, npElectronIdxs, npMuonIdxs):
+                        self.out_Lepton2_isFake = True
+                if nNPTaus >= 2:
+                    i = npTauIdxs[1]
+                    lepton3P4 = self._p4_from_arrays(self.b_Tau_pt, self.b_Tau_eta, self.b_Tau_phi, self.b_Tau_mass, i)
+                    self.out_Lepton3_pdgId = -15 * int(self.b_Tau_charge.At(i))
+                    self.out_Lepton3_p4 = self._copy_p4_from_lv(lepton3P4)
+                    self.out_Lepton3_PFIso = float(self.b_Tau_rawIso.At(i))
+                    self.out_Lepton3_tauDecayMode = int(self.b_Tau_decayMode.At(i))
+                    self.out_Lepton3_tauGenPartFlav = self._tau_genpartflav(i)
+                    self.out_Lepton3_tauProng = self._tau_prong_group_from_decaymode(self.out_Lepton3_tauDecayMode)
+                    self.out_Lepton3_jetPtRatio = self._tau_jet_pt_ratio(i)
+                    lepton3jetP4 = self._tau_matched_jet_p4(i)
+                    self.out_Lepton3_Jet_p4 = self._copy_p4_from_lv(lepton3jetP4)
+                    self.out_Lepton3_jetBTagDeepFlavor = self._tau_matched_jet_btag(i)
+                    if self.isGoodTau(i, npElectronIdxs, npMuonIdxs):
+                        self.out_Lepton3_isTight = True
+                    if self.isOnlyFakeTau(i, npElectronIdxs, npMuonIdxs):
+                        self.out_Lepton3_isFake = True
+
+        elif self.mode == "NPLMuTaTa":
+            if nNPMuons >= 1 and nNPTaus >= 1:
+                if nNPMuons >= 1:
+                    i = npMuonIdxs[0]
+                    lepton1P4 = self._p4_from_arrays(self.b_Muon_pt, self.b_Muon_eta, self.b_Muon_phi, self.b_Muon_mass, i)
+                    self.out_Lepton1_pdgId = -13 * int(self.b_Muon_charge.At(i))
+                    self.out_LeadingMuon_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_PFIso = float(self.b_Muon_pfRelIso04_all.At(i))
+                    self.out_Lepton1_jetPtRatio = float(self.b_Muon_jetPtRatio.At(i))
+                    lepton1jetP4 = self._p4_from_arrays(self.b_Muon_jetPt, self.b_Muon_jetEta, self.b_Muon_jetPhi, self.b_Muon_jetMass, i)
+                    self.out_Lepton1_Jet_p4 = self._copy_p4_from_lv(lepton1jetP4)
+                    self.out_Lepton1_mvaTOP = float(self.b_Muon_mvaTOP.At(i))
+                    if self.isGoodMuon(i):
+                        self.out_Lepton1_isTight = True
+                    if self.isOnlyFakeMuon(i):
+                        self.out_Lepton1_isFake = True
+                if nNPTaus >= 1:
+                    i = npTauIdxs[0]
+                    lepton2P4 = self._p4_from_arrays(self.b_Tau_pt, self.b_Tau_eta, self.b_Tau_phi, self.b_Tau_mass, i)
+                    self.out_Lepton2_pdgId = -15 * int(self.b_Tau_charge.At(i))
+                    self.out_Lepton2_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_PFIso = float(self.b_Tau_rawIso.At(i))
+                    self.out_Lepton2_tauDecayMode = int(self.b_Tau_decayMode.At(i))
+                    self.out_Lepton2_tauGenPartFlav = self._tau_genpartflav(i)
+                    self.out_Lepton2_tauProng = self._tau_prong_group_from_decaymode(self.out_Lepton2_tauDecayMode)
+                    self.out_Lepton2_jetPtRatio = self._tau_jet_pt_ratio(i)
+                    lepton2jetP4 = self._tau_matched_jet_p4(i)
+                    self.out_Lepton2_Jet_p4 = self._copy_p4_from_lv(lepton2jetP4)
+                    self.out_Lepton2_jetBTagDeepFlavor = self._tau_matched_jet_btag(i)
+                    if self.isGoodTau(i, npElectronIdxs, npMuonIdxs):
+                        self.out_Lepton2_isTight = True
+                    if self.isOnlyFakeTau(i, npElectronIdxs, npMuonIdxs):
+                        self.out_Lepton2_isFake = True
+                if nNPTaus >= 2:
+                    i = npTauIdxs[1]
+                    lepton3P4 = self._p4_from_arrays(self.b_Tau_pt, self.b_Tau_eta, self.b_Tau_phi, self.b_Tau_mass, i)
+                    self.out_Lepton3_pdgId = -15 * int(self.b_Tau_charge.At(i))
+                    self.out_Lepton3_p4 = self._copy_p4_from_lv(lepton3P4)
+                    self.out_Lepton3_PFIso = float(self.b_Tau_rawIso.At(i))
+                    self.out_Lepton3_tauDecayMode = int(self.b_Tau_decayMode.At(i))
+                    self.out_Lepton3_tauGenPartFlav = self._tau_genpartflav(i)
+                    self.out_Lepton3_tauProng = self._tau_prong_group_from_decaymode(self.out_Lepton3_tauDecayMode)
+                    self.out_Lepton3_jetPtRatio = self._tau_jet_pt_ratio(i)
+                    lepton3jetP4 = self._tau_matched_jet_p4(i)
+                    self.out_Lepton3_Jet_p4 = self._copy_p4_from_lv(lepton3jetP4)
+                    self.out_Lepton3_jetBTagDeepFlavor = self._tau_matched_jet_btag(i)
+                    if self.isGoodTau(i, npElectronIdxs, npMuonIdxs):
+                        self.out_Lepton3_isTight = True
+                    if self.isOnlyFakeTau(i, npElectronIdxs, npMuonIdxs):
+                        self.out_Lepton3_isFake = True
+
+        elif self.mode == "NPLTaElEl":
+            if nNPTaus >= 1 and nNPElectrons >= 1:
+                if nNPTaus >= 1:
+                    i = npTauIdxs[0]
+                    lepton1P4 = self._p4_from_arrays(self.b_Tau_pt, self.b_Tau_eta, self.b_Tau_phi, self.b_Tau_mass, i)
+                    self.out_Lepton1_pdgId = -15 * int(self.b_Tau_charge.At(i))
+                    self.out_LeadingTau_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_PFIso = float(self.b_Tau_rawIso.At(i))
+                    self.out_Lepton1_tauDecayMode = int(self.b_Tau_decayMode.At(i))
+                    self.out_Lepton1_tauGenPartFlav = self._tau_genpartflav(i)
+                    self.out_Lepton1_tauProng = self._tau_prong_group_from_decaymode(self.out_Lepton1_tauDecayMode)
+                    self.out_Lepton1_jetPtRatio = self._tau_jet_pt_ratio(i)
+                    lepton1jetP4 = self._tau_matched_jet_p4(i)
+                    self.out_Lepton1_Jet_p4 = self._copy_p4_from_lv(lepton1jetP4)
+                    self.out_Lepton1_jetBTagDeepFlavor = self._tau_matched_jet_btag(i)
+                    if self.isGoodTau(i, npElectronIdxs, npMuonIdxs):
+                        self.out_Lepton1_isTight = True
+                    if self.isOnlyFakeTau(i, npElectronIdxs, npMuonIdxs):
+                        self.out_Lepton1_isFake = True
+                if nNPElectrons >= 1:
+                    i = npElectronIdxs[0]
+                    lepton2P4 = self._p4_from_arrays(self.b_Electron_pt, self.b_Electron_eta, self.b_Electron_phi, self.b_Electron_mass, i)
+                    self.out_Lepton2_pdgId = -11 * int(self.b_Electron_charge.At(i))
+                    self.out_LeadingElectron_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_PFIso = float(self.b_Electron_pfRelIso03_all.At(i))
+                    self.out_Lepton2_jetPtRatio = float(self.b_Electron_jetPtRatio.At(i))
+                    lepton2jetP4 = self._p4_from_arrays(self.b_Electron_jetPt, self.b_Electron_jetEta, self.b_Electron_jetPhi, self.b_Electron_jetMass, i)
+                    self.out_Lepton2_Jet_p4 = self._copy_p4_from_lv(lepton2jetP4)
+                    self.out_Lepton2_mvaTOP = float(self.b_Electron_mvaTOP.At(i))
+                    if self.isGoodElectron(i):
+                        self.out_Lepton2_isTight = True
+                    if self.isOnlyFakeElectron(i):
+                        self.out_Lepton2_isFake = True
+                if nNPElectrons >= 2:
+                    i = npElectronIdxs[1]
+                    lepton3P4 = self._p4_from_arrays(self.b_Electron_pt, self.b_Electron_eta, self.b_Electron_phi, self.b_Electron_mass, i)
+                    self.out_Lepton3_pdgId = -11 * int(self.b_Electron_charge.At(i))
+                    self.out_Lepton3_p4 = self._copy_p4_from_lv(lepton3P4)
+                    self.out_Lepton3_PFIso = float(self.b_Electron_pfRelIso03_all.At(i))
+                    self.out_Lepton3_jetPtRatio = float(self.b_Electron_jetPtRatio.At(i))
+                    lepton3jetP4 = self._p4_from_arrays(self.b_Electron_jetPt, self.b_Electron_jetEta, self.b_Electron_jetPhi, self.b_Electron_jetMass, i)
+                    self.out_Lepton3_Jet_p4 = self._copy_p4_from_lv(lepton3jetP4)
+                    self.out_Lepton3_mvaTOP = float(self.b_Electron_mvaTOP.At(i))
+                    if self.isGoodElectron(i):
+                        self.out_Lepton3_isTight = True
+                    if self.isOnlyFakeElectron(i):
+                        self.out_Lepton3_isFake = True
+
+        elif self.mode == "NPLTaMuMu":
+            if nNPTaus >= 1 and nNPMuons >= 1:
+                if nNPTaus >= 1:
+                    i = npTauIdxs[0]
+                    lepton1P4 = self._p4_from_arrays(self.b_Tau_pt, self.b_Tau_eta, self.b_Tau_phi, self.b_Tau_mass, i)
+                    self.out_Lepton1_pdgId = -15 * int(self.b_Tau_charge.At(i))
+                    self.out_LeadingTau_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_p4 = self._copy_p4_from_lv(lepton1P4)
+                    self.out_Lepton1_PFIso = float(self.b_Tau_rawIso.At(i))
+                    self.out_Lepton1_tauDecayMode = int(self.b_Tau_decayMode.At(i))
+                    self.out_Lepton1_tauGenPartFlav = self._tau_genpartflav(i)
+                    self.out_Lepton1_tauProng = self._tau_prong_group_from_decaymode(self.out_Lepton1_tauDecayMode)
+                    self.out_Lepton1_jetPtRatio = self._tau_jet_pt_ratio(i)
+                    lepton1jetP4 = self._tau_matched_jet_p4(i)
+                    self.out_Lepton1_Jet_p4 = self._copy_p4_from_lv(lepton1jetP4)
+                    self.out_Lepton1_jetBTagDeepFlavor = self._tau_matched_jet_btag(i)
+                    if self.isGoodTau(i, npElectronIdxs, npMuonIdxs):
+                        self.out_Lepton1_isTight = True
+                    if self.isOnlyFakeTau(i, npElectronIdxs, npMuonIdxs):
+                        self.out_Lepton1_isFake = True
+                if nNPMuons >= 1:
+                    i = npMuonIdxs[0]
+                    lepton2P4 = self._p4_from_arrays(self.b_Muon_pt, self.b_Muon_eta, self.b_Muon_phi, self.b_Muon_mass, i)
+                    self.out_Lepton2_pdgId = -13 * int(self.b_Muon_charge.At(i))
+                    self.out_LeadingMuon_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_p4 = self._copy_p4_from_lv(lepton2P4)
+                    self.out_Lepton2_PFIso = float(self.b_Muon_pfRelIso04_all.At(i))
+                    self.out_Lepton2_jetPtRatio = float(self.b_Muon_jetPtRatio.At(i))
+                    lepton2jetP4 = self._p4_from_arrays(self.b_Muon_jetPt, self.b_Muon_jetEta, self.b_Muon_jetPhi, self.b_Muon_jetMass, i)
+                    self.out_Lepton2_Jet_p4 = self._copy_p4_from_lv(lepton2jetP4)
+                    self.out_Lepton2_mvaTOP = float(self.b_Muon_mvaTOP.At(i))
+                    if self.isGoodMuon(i):
+                        self.out_Lepton2_isTight = True
+                    if self.isOnlyFakeMuon(i):
+                        self.out_Lepton2_isFake = True
+                if nNPMuons >= 2:
+                    i = npMuonIdxs[1]
+                    lepton3P4 = self._p4_from_arrays(self.b_Muon_pt, self.b_Muon_eta, self.b_Muon_phi, self.b_Muon_mass, i)
+                    self.out_Lepton3_pdgId = -13 * int(self.b_Muon_charge.At(i))
+                    self.out_Lepton3_p4 = self._copy_p4_from_lv(lepton3P4)
+                    self.out_Lepton3_PFIso = float(self.b_Muon_pfRelIso04_all.At(i))
+                    self.out_Lepton3_jetPtRatio = float(self.b_Muon_jetPtRatio.At(i))
+                    lepton3jetP4 = self._p4_from_arrays(self.b_Muon_jetPt, self.b_Muon_jetEta, self.b_Muon_jetPhi, self.b_Muon_jetMass, i)
+                    self.out_Lepton3_Jet_p4 = self._copy_p4_from_lv(lepton3jetP4)
+                    self.out_Lepton3_mvaTOP = float(self.b_Muon_mvaTOP.At(i))
+                    if self.isGoodMuon(i):
+                        self.out_Lepton3_isTight = True
+                    if self.isOnlyFakeMuon(i):
+                        self.out_Lepton3_isFake = True
+
+        self.out_GoodLeptonCode = 0
+        if self.out_Lepton1_pdgId:
+            self.out_GoodLeptonCode += 100
+        if self.out_Lepton2_pdgId:
+            self.out_GoodLeptonCode += 10
+        if self.out_Lepton3_pdgId:
+            self.out_GoodLeptonCode += 1
+        if self.out_GoodLeptonCode != 111:
+            return False
+
+        if self.mode and self.mode.startswith("NPL"):
+            if not (self.out_Lepton1_isFake or self.out_Lepton2_isFake or self.out_Lepton3_isFake):
+                return False
+
+        leptonTotP4 = lepton1P4 + lepton2P4 + lepton3P4
+        self.out_TriLepton_mass = float(leptonTotP4.M())
+        self.out_TriLepton_pt = float(leptonTotP4.Pt())
+
+        lpts = [float(lepton1P4.Pt()), float(lepton2P4.Pt()), float(lepton3P4.Pt())]
+        letas = [float(lepton1P4.Eta()), float(lepton2P4.Eta()), float(lepton3P4.Eta())]
+        lphis = [float(lepton1P4.Phi()), float(lepton2P4.Phi()), float(lepton3P4.Phi())]
+        order = sorted(range(3), key=lambda idx: lpts[idx], reverse=True)
+        self.out_ptsortLepton1_pt = lpts[order[0]]
+        self.out_ptsortLepton1_eta = letas[order[0]]
+        self.out_ptsortLepton1_phi = lphis[order[0]]
+        self.out_ptsortLepton2_pt = lpts[order[1]]
+        self.out_ptsortLepton2_eta = letas[order[1]]
+        self.out_ptsortLepton2_phi = lphis[order[1]]
+        self.out_ptsortLepton3_pt = lpts[order[2]]
+        self.out_ptsortLepton3_eta = letas[order[2]]
+        self.out_ptsortLepton3_phi = lphis[order[2]]
+
+        if self.out_GoodLeptonCode >= 111 and self.mode in {"MuMuMu", "ElElEl", "TaTaTa", "NPLMuMuMu", "NPLElElEl", "NPLTaTaTa"}:
+            c1x2 = self.out_Lepton1_pdgId * self.out_Lepton2_pdgId
+            c2x3 = self.out_Lepton2_pdgId * self.out_Lepton3_pdgId
+            c3x1 = self.out_Lepton3_pdgId * self.out_Lepton1_pdgId
+
+            dm12 = abs((lepton1P4 + lepton2P4).M() - 91.2)
+            dm23 = abs((lepton2P4 + lepton3P4).M() - 91.2)
+            dm31 = abs((lepton3P4 + lepton1P4).M() - 91.2)
+
+            select12 = 0
+            select23 = 0
+            select31 = 0
+
+            if c1x2 < 0 and c2x3 > 0 and c3x1 > 0:
+                select12 += 1
+            elif c1x2 > 0 and c2x3 < 0 and c3x1 > 0:
+                select23 += 1
+            elif c1x2 > 0 and c2x3 > 0 and c3x1 < 0:
+                select31 += 1
+            elif c1x2 < 0 and c2x3 < 0 and c3x1 > 0:
+                if dm12 < dm23:
+                    select12 += 1
+                else:
+                    select23 += 1
+            elif c1x2 > 0 and c2x3 < 0 and c3x1 < 0:
+                if dm23 < dm31:
+                    select23 += 1
+                else:
+                    select31 += 1
+            elif c1x2 < 0 and c2x3 > 0 and c3x1 < 0:
+                if dm12 < dm31:
+                    select12 += 1
+                else:
+                    select31 += 1
+            elif c1x2 < 0 and c2x3 < 0 and c3x1 < 0:
+                if dm12 < dm23 and dm12 < dm31:
+                    select12 += 1
+                elif dm31 < dm12 and dm31 < dm23:
+                    select31 += 1
+                elif dm23 < dm12 and dm23 < dm31:
+                    select23 += 1
+
+            if select12 > 0:
+                lepton1P4, lepton2P4, lepton3P4 = lepton3P4, lepton1P4, lepton2P4
+                self._permute_lepton_aux_states((2, 0, 1))
+            elif select31 > 0:
+                lepton1P4, lepton2P4 = lepton2P4, lepton1P4
+                self._permute_lepton_aux_states((1, 0, 2))
+
+        if self.out_GoodLeptonCode >= 100:
+            self.out_Lepton1_p4 = self._copy_p4_from_lv(lepton1P4)
+        if self.out_GoodLeptonCode >= 110:
+            self.out_Lepton2_p4 = self._copy_p4_from_lv(lepton2P4)
+        if self.out_GoodLeptonCode >= 111:
+            self.out_Lepton3_p4 = self._copy_p4_from_lv(lepton3P4)
+
+        if self.out_Lepton2_pdgId * self.out_Lepton3_pdgId > 0:
+            self.out_GoodLeptonCode *= -1
+
+        if abs(self.out_GoodLeptonCode) % 100 == 11:
+            zP4 = lepton2P4 + lepton3P4
+            self.out_Z_p4 = self._copy_p4_from_lv(zP4)
+            sumId = self.out_Lepton2_pdgId + self.out_Lepton3_pdgId
+            if sumId <= (-11 - 11):
+                self.out_Z_charge = +2
+            elif sumId >= (+11 + 11):
+                self.out_Z_charge = -2
+            elif sumId <= -11:
+                self.out_Z_charge = +1
+            elif sumId >= +11:
+                self.out_Z_charge = -1
+            self.out_TriLepton_WleptonZdPhi = abs(lepton1P4.DeltaPhi(zP4))
+            self.out_TriLepton_WleptonZdR = lepton1P4.DeltaR(zP4)
+
+        if abs(self.out_GoodLeptonCode) >= 100:
+            self.out_W_MT = self._compute_mt(lepton1P4, self.out_MET_pt, self.out_MET_phi)
+
+        jetIdxs = []
+        for i in range(self.b_Jet_btagDeepFlavB.GetSize()):
+            if not self.isGoodJet(i):
+                continue
+            jetP4 = self._p4_from_arrays(self.b_Jet_pt, self.b_Jet_eta, self.b_Jet_phi, self.b_Jet_mass, i)
+            if lepton1P4.Pt() > 0 and lepton1P4.DeltaR(jetP4) < 0.4:
+                continue
+            if lepton2P4.Pt() > 0 and lepton2P4.DeltaR(jetP4) < 0.4:
+                continue
+            if lepton3P4.Pt() > 0 and lepton3P4.DeltaR(jetP4) < 0.4:
+                continue
+            jetIdxs.append(i)
+
+            isBTagged = self.b_Jet_btagDeepFlavB.At(i) > self.minBjetBDiscr_
+            isCTagged = self.b_Jet_btagDeepFlavCvL.At(i) > self.minCjetCvLDiscr_ and self.b_Jet_btagDeepFlavCvB.At(i) > self.minCjetCvBDiscr_
+            isQTagged = self.b_Jet_btagDeepFlavQG.At(i) > self.minQjetQGDiscr_
+
+            if isBTagged:
+                self.out_nBjet += 1
+            if isCTagged and not isBTagged:
+                self.out_nCjet += 1
+            if isQTagged and not isBTagged and not isCTagged:
+                self.out_nUDSjet += 1
+
+        self.out_nGoodJet = len(jetIdxs)
+        jetIdxs.sort(key=lambda i: self.b_Jet_pt.At(i), reverse=True)
+        for kk in jetIdxs:
+            self.out_GoodJet_p4[0].append(float(self.b_Jet_pt.At(kk)))
+            self.out_GoodJet_p4[1].append(float(self.b_Jet_eta.At(kk)))
+            self.out_GoodJet_p4[2].append(float(self.b_Jet_phi.At(kk)))
+            self.out_GoodJet_p4[3].append(float(self.b_Jet_mass.At(kk)))
+            self.out_GoodJet_DeepFlavB.append(float(self.b_Jet_btagDeepFlavB.At(kk)))
+            self.out_GoodJet_index.append(int(kk))
+            self.out_GoodJet_DeepFlavCvL.append(float(self.b_Jet_btagDeepFlavCvL.At(kk)))
+            self.out_GoodJet_DeepFlavCvB.append(float(self.b_Jet_btagDeepFlavCvB.At(kk)))
+            self.out_GoodJet_DeepFlavQG.append(float(self.b_Jet_btagDeepFlavQG.At(kk)))
+            if self.use_hadronFlavour or self._is_jetvar_mode():
+                self.out_GoodJet_hadronFlavour.append(int(self.b_Jet_hadronFlavour.At(kk)))
+            if self._is_jetvar_mode():
+                self.out_GoodJet_Uncert.append(float(self.b_Jet_Uncert.At(kk)))
+
+        tree = event._tree
+
+        if not self._is_jetvar_mode():
+            # Leptons
+            for objName, p4, jetp4, pdgid, tau_decaymode, tau_prong, tau_genpartflav, pfiso, jetptratio, istight, isfake, jetb, mvatop in [
+                ("Lepton1", self.out_Lepton1_p4, self.out_Lepton1_Jet_p4, self.out_Lepton1_pdgId, self.out_Lepton1_tauDecayMode, self.out_Lepton1_tauProng, self.out_Lepton1_tauGenPartFlav, self.out_Lepton1_PFIso, self.out_Lepton1_jetPtRatio, self.out_Lepton1_isTight, self.out_Lepton1_isFake, self.out_Lepton1_jetBTagDeepFlavor, self.out_Lepton1_mvaTOP),
+                ("Lepton2", self.out_Lepton2_p4, self.out_Lepton2_Jet_p4, self.out_Lepton2_pdgId, self.out_Lepton2_tauDecayMode, self.out_Lepton2_tauProng, self.out_Lepton2_tauGenPartFlav, self.out_Lepton2_PFIso, self.out_Lepton2_jetPtRatio, self.out_Lepton2_isTight, self.out_Lepton2_isFake, self.out_Lepton2_jetBTagDeepFlavor, self.out_Lepton2_mvaTOP),
+                ("Lepton3", self.out_Lepton3_p4, self.out_Lepton3_Jet_p4, self.out_Lepton3_pdgId, self.out_Lepton3_tauDecayMode, self.out_Lepton3_tauProng, self.out_Lepton3_tauGenPartFlav, self.out_Lepton3_PFIso, self.out_Lepton3_jetPtRatio, self.out_Lepton3_isTight, self.out_Lepton3_isFake, self.out_Lepton3_jetBTagDeepFlavor, self.out_Lepton3_mvaTOP),
+            ]:
+                out_map = {
+                    "%s_pt" % objName: p4[0],
+                    "%s_eta" % objName: p4[1],
+                    "%s_phi" % objName: p4[2],
+                    "%s_mass" % objName: p4[3],
+                    "%s_PFIso" % objName: pfiso,
+                    "%s_jetPtRatio" % objName: jetptratio,
+                    "%s_Jet_pt" % objName: jetp4[0],
+                    "%s_Jet_eta" % objName: jetp4[1],
+                    "%s_Jet_phi" % objName: jetp4[2],
+                    "%s_Jet_mass" % objName: jetp4[3],
+                    "%s_jetBTagDeepFlavor" % objName: jetb,
+                    "%s_pdgId" % objName: pdgid,
+                    "%s_tauDecayMode" % objName: tau_decaymode,
+                    "%s_tauProng" % objName: tau_prong,
+                    "%s_tauGenPartFlav" % objName: tau_genpartflav,
+                    "%s_isTight" % objName: istight,
+                    "%s_isFake" % objName: isfake,
+                    "%s_mvaTOP" % objName: mvatop,
+                }
+                for name, value in out_map.items():
+                    self._set_tree_attr(tree, name, value)
+                    self.out.fillBranch(name, value)
+
+            ptsort_map = {
+                "ptsortLepton1_pt": self.out_ptsortLepton1_pt,
+                "ptsortLepton1_eta": self.out_ptsortLepton1_eta,
+                "ptsortLepton1_phi": self.out_ptsortLepton1_phi,
+                "ptsortLepton2_pt": self.out_ptsortLepton2_pt,
+                "ptsortLepton2_eta": self.out_ptsortLepton2_eta,
+                "ptsortLepton2_phi": self.out_ptsortLepton2_phi,
+                "ptsortLepton3_pt": self.out_ptsortLepton3_pt,
+                "ptsortLepton3_eta": self.out_ptsortLepton3_eta,
+                "ptsortLepton3_phi": self.out_ptsortLepton3_phi,
+            }
+            for name, value in ptsort_map.items():
+                self._set_tree_attr(tree, name, value)
+                self.out.fillBranch(name, value)
+
+            ptsort_goodjet_map = {
+                "ptsortGoodJet1_pt": self._get_ptsort_goodjet(self.out_GoodJet_p4, self.out_nGoodJet, 1, 0),
+                "ptsortGoodJet1_eta": self._get_ptsort_goodjet(self.out_GoodJet_p4, self.out_nGoodJet, 1, 1),
+                "ptsortGoodJet1_phi": self._get_ptsort_goodjet(self.out_GoodJet_p4, self.out_nGoodJet, 1, 2),
+                "ptsortGoodJet2_pt": self._get_ptsort_goodjet(self.out_GoodJet_p4, self.out_nGoodJet, 2, 0),
+                "ptsortGoodJet2_eta": self._get_ptsort_goodjet(self.out_GoodJet_p4, self.out_nGoodJet, 2, 1),
+                "ptsortGoodJet2_phi": self._get_ptsort_goodjet(self.out_GoodJet_p4, self.out_nGoodJet, 2, 2),
+                "ptsortGoodJet3_pt": self._get_ptsort_goodjet(self.out_GoodJet_p4, self.out_nGoodJet, 3, 0),
+                "ptsortGoodJet3_eta": self._get_ptsort_goodjet(self.out_GoodJet_p4, self.out_nGoodJet, 3, 1),
+                "ptsortGoodJet3_phi": self._get_ptsort_goodjet(self.out_GoodJet_p4, self.out_nGoodJet, 3, 2),
+            }
+            for name, value in ptsort_goodjet_map.items():
+                self._set_tree_attr(tree, name, value)
+                self.out.fillBranch(name, value)
+
+            other_p4_map = {
+                "Z_pt": self.out_Z_p4[0],
+                "Z_eta": self.out_Z_p4[1],
+                "Z_phi": self.out_Z_p4[2],
+                "Z_mass": self.out_Z_p4[3],
+                "GoodJet_pt": self.out_GoodJet_p4[0],
+                "GoodJet_eta": self.out_GoodJet_p4[1],
+                "GoodJet_phi": self.out_GoodJet_p4[2],
+                "GoodJet_mass": self.out_GoodJet_p4[3],
+                "LeadingElectron_pt": self.out_LeadingElectron_p4[0],
+                "LeadingElectron_eta": self.out_LeadingElectron_p4[1],
+                "LeadingElectron_phi": self.out_LeadingElectron_p4[2],
+                "LeadingElectron_mass": self.out_LeadingElectron_p4[3],
+                "LeadingMuon_pt": self.out_LeadingMuon_p4[0],
+                "LeadingMuon_eta": self.out_LeadingMuon_p4[1],
+                "LeadingMuon_phi": self.out_LeadingMuon_p4[2],
+                "LeadingMuon_mass": self.out_LeadingMuon_p4[3],
+                "LeadingTau_pt": self.out_LeadingTau_p4[0],
+                "LeadingTau_eta": self.out_LeadingTau_p4[1],
+                "LeadingTau_phi": self.out_LeadingTau_p4[2],
+                "LeadingTau_mass": self.out_LeadingTau_p4[3],
+            }
+            for name, value in other_p4_map.items():
+                self._set_tree_attr(tree, name, value)
+                self.out.fillBranch(name, value)
+
+            scalar_map = {
+                "MET_pt": self.out_MET_pt,
+                "MET_phi": self.out_MET_phi,
+                "LeadingLepton_pt": max(self.out_LeadingMuon_p4[0], self.out_LeadingElectron_p4[0], self.out_LeadingTau_p4[0]),
+                "TriLepton_mass": self.out_TriLepton_mass,
+                "TriLepton_pt": self.out_TriLepton_pt,
+                "TriLepton_WleptonZdPhi": self.out_TriLepton_WleptonZdPhi,
+                "TriLepton_WleptonZdR": self.out_TriLepton_WleptonZdR,
+                "nVetoLepton": self.out_nVetoElectron + self.out_nVetoMuon,
+                "nGoodElectron": self.out_nGoodElectron,
+                "nGoodMuon": self.out_nGoodMuon,
+                "nGoodTau": self.out_nGoodTau,
+                "nNPTau": self.out_nNPTau,
+                "nGoodLepton": self.out_nGoodElectron + self.out_nGoodMuon + self.out_nGoodTau,
+                "nNPLepton": self.out_nNPElectron + self.out_nNPMuon + self.out_nNPTau,
+                "GoodLeptonCode": self.out_GoodLeptonCode,
+                "Z_charge": self.out_Z_charge,
+                "W_MT": self.out_W_MT,
+                "GoodJet_index": self.out_GoodJet_index,
+                "GoodJet_DeepFlavB": self.out_GoodJet_DeepFlavB,
+                **({"GoodJet_hadronFlavour": self.out_GoodJet_hadronFlavour} if self.use_hadronFlavour else {}),
+                "nBjet": self.out_nBjet,
+                "nCjet": self.out_nCjet,
+                "nUDSjet": self.out_nUDSjet,
+                "GoodJet_DeepFlavCvL": self.out_GoodJet_DeepFlavCvL,
+                "GoodJet_DeepFlavCvB": self.out_GoodJet_DeepFlavCvB,
+                "GoodJet_DeepFlavQG": self.out_GoodJet_DeepFlavQG,
+            }
+            for name, value in scalar_map.items():
+                self._set_tree_attr(tree, name, value)
+                self.out.fillBranch(name, value)
+
+            self._set_tree_attr(tree, "nGoodJet", self.out_nGoodJet)
+        else:
+            suffix = self._jet_suffix()
+            ptsort_goodjet_map = {
+                "ptsortGoodJet1_pt_%s" % suffix: self._get_ptsort_goodjet(self.out_GoodJet_p4, self.out_nGoodJet, 1, 0),
+                "ptsortGoodJet1_eta_%s" % suffix: self._get_ptsort_goodjet(self.out_GoodJet_p4, self.out_nGoodJet, 1, 1),
+                "ptsortGoodJet1_phi_%s" % suffix: self._get_ptsort_goodjet(self.out_GoodJet_p4, self.out_nGoodJet, 1, 2),
+                "ptsortGoodJet2_pt_%s" % suffix: self._get_ptsort_goodjet(self.out_GoodJet_p4, self.out_nGoodJet, 2, 0),
+                "ptsortGoodJet2_eta_%s" % suffix: self._get_ptsort_goodjet(self.out_GoodJet_p4, self.out_nGoodJet, 2, 1),
+                "ptsortGoodJet2_phi_%s" % suffix: self._get_ptsort_goodjet(self.out_GoodJet_p4, self.out_nGoodJet, 2, 2),
+                "ptsortGoodJet3_pt_%s" % suffix: self._get_ptsort_goodjet(self.out_GoodJet_p4, self.out_nGoodJet, 3, 0),
+                "ptsortGoodJet3_eta_%s" % suffix: self._get_ptsort_goodjet(self.out_GoodJet_p4, self.out_nGoodJet, 3, 1),
+                "ptsortGoodJet3_phi_%s" % suffix: self._get_ptsort_goodjet(self.out_GoodJet_p4, self.out_nGoodJet, 3, 2),
+            }
+            for name, value in ptsort_goodjet_map.items():
+                self._set_tree_attr(tree, name, value)
+                self.out.fillBranch(name, value)
+
+            other_map = {
+                "GoodJet_pt_%s" % suffix: self._get_shifted_goodjet_pt(),
+                "GoodJet_eta_%s" % suffix: self.out_GoodJet_p4[1],
+                "GoodJet_phi_%s" % suffix: self.out_GoodJet_p4[2],
+                "GoodJet_mass_%s" % suffix: self._get_shifted_goodjet_mass(),
+                "W_MT_%s" % suffix: self.out_W_MT,
+                "GoodJet_index_%s" % suffix: self.out_GoodJet_index,
+                "GoodJet_DeepFlavB_%s" % suffix: self.out_GoodJet_DeepFlavB,
+                "GoodJet_hadronFlavour_%s" % suffix: self.out_GoodJet_hadronFlavour,
+                "nBjet_%s" % suffix: self.out_nBjet,
+                "nCjet_%s" % suffix: self.out_nCjet,
+                "nUDSjet_%s" % suffix: self.out_nUDSjet,
+                "GoodJet_DeepFlavCvL_%s" % suffix: self.out_GoodJet_DeepFlavCvL,
+                "GoodJet_DeepFlavCvB_%s" % suffix: self.out_GoodJet_DeepFlavCvB,
+                "GoodJet_DeepFlavQG_%s" % suffix: self.out_GoodJet_DeepFlavQG,
+            }
+            for name, value in other_map.items():
+                self._set_tree_attr(tree, name, value)
+                self.out.fillBranch(name, value)
+
+            corrected_met_pt, corrected_met_phi = self._get_corrected_met()
+            self._set_tree_attr(tree, "MET_pt_%s" % suffix, corrected_met_pt)
+            self.out.fillBranch("MET_pt_%s" % suffix, corrected_met_pt)
+            self._set_tree_attr(tree, "MET_phi_%s" % suffix, corrected_met_phi)
+            self.out.fillBranch("MET_phi_%s" % suffix, corrected_met_phi)
+            self._set_tree_attr(tree, "nGoodJet_%s" % suffix, self.out_nGoodJet)
+            self.out.fillBranch("nGoodJet_%s" % suffix, self.out_nGoodJet)
+
+        return True
+
+def _factory(mode, use_hadronFlavour=False, jetVar=None, jetSyst=None):
+    return lambda: FCNCTriLepton(
+        mode=mode,
+        use_hadronFlavour=use_hadronFlavour,
+        jetVar=jetVar,
+        jetSyst=jetSyst,
+    )
+
+
+JET_VARS = [
+    "AbsoluteStat", "AbsoluteScale", "AbsoluteMPFBias", "Fragmentation",
+    "SinglePionECAL", "SinglePionHCAL", "FlavorQCD", "TimePtEta",
+    "RelativeJEREC1", "RelativeJEREC2", "RelativeJERHF", "RelativePtBB",
+    "RelativePtEC1", "RelativePtEC2", "RelativePtHF", "RelativeBal",
+    "RelativeSample", "RelativeFSR", "RelativeStatFSR", "RelativeStatEC",
+    "RelativeStatHF", "PileUpDataMC", "PileUpPtRef", "PileUpPtBB",
+    "PileUpPtEC1", "PileUpPtEC2", "PileUpPtHF", "FlavorPureQuark",
+    "FlavorPureCharm", "FlavorPureBottom",
+]
+
+MODES = [
+    "ElElEl", "MuElEl", "ElMuMu", "MuMuMu",
+    "TaTaTa", "ElTaTa", "MuTaTa", "TaElEl", "TaMuMu",
+    "NPLElElEl", "NPLMuElEl", "NPLElMuMu", "NPLMuMuMu",
+    "NPLTaTaTa", "NPLElTaTa", "NPLMuTaTa", "NPLTaElEl", "NPLTaMuMu",
+]
+
+YEARS = ("2018",)
+
+for _year in YEARS:
+    for _mode in MODES:
+        globals()[f"fcnc_{_mode}_{_year}"] = _factory(_mode, use_hadronFlavour=False)
+        globals()[f"central_fcnc_{_mode}_{_year}"] = _factory(_mode, use_hadronFlavour=True)
+    for _jetVar in JET_VARS:
+        for _mode in MODES:
+            globals()[f"jetUncertUp_fcnc_{_mode}_{_year}_{_jetVar}"] = _factory(
+                _mode, use_hadronFlavour=True, jetVar=_jetVar, jetSyst="Up"
+            )
+            globals()[f"jetUncertDown_fcnc_{_mode}_{_year}_{_jetVar}"] = _factory(
+                _mode, use_hadronFlavour=True, jetVar=_jetVar, jetSyst="Down"
+            )

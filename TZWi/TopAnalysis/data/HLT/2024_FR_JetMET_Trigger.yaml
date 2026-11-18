@@ -1,0 +1,26 @@
+###### Fake-rate measurement trigger for Run2024 JetMET
+######
+###### This file is intentionally separated from the trilepton-analysis trigger YAML.
+###### The fake-rate measurement should be selected by probe-lepton-independent
+###### jet triggers, not by EGamma/Muon/MuonEG lepton triggers.
+
+Run2024.JetMET_FR: "
+  HLT_PFJet200 ||
+  HLT_PFJet260 ||
+  HLT_PFJet320 ||
+  HLT_PFJet400 ||
+  HLT_PFJet450 ||
+  HLT_PFJet500 ||
+  HLT_PFJet550
+"
+
+###### Optional cross-check only. Do not use this as the nominal FR trigger
+###### until the offline HT plateau and FR stability are checked.
+Run2024.JetMET_FR_HTTest: "
+  HLT_PFHT430 ||
+  HLT_PFHT510 ||
+  HLT_PFHT590 ||
+  HLT_PFHT680 ||
+  HLT_PFHT780 ||
+  HLT_PFHT890
+"

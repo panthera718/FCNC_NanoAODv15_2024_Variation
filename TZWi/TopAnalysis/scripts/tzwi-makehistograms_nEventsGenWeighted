@@ -1,0 +1,348 @@
+#!/usr/bin/env python3
+
+from ROOT import *
+import yaml
+import sys, os
+from array import array
+import hashlib
+
+if len(sys.argv) < 6:
+    print("Usage: tzwi-makehistograms BASE_CUT BASE_WEIGHT CONFIG_FILE INPUT_NTUPLE_DIR OUTPUT_DIR [UNSKIMMED_FILELIST_TXT]")
+    sys.exit(1)
+
+baseCut = sys.argv[1] ## Baseline cut to apply for every steps. "1" not to apply any cut
+baseWeight = sys.argv[2] ## Baseline weight. this can be overridden by weight definition in the config file
+configFile = sys.argv[3] ## the yaml file which defines cut steps and histograms
+dName = sys.argv[4] ## directory name which contains ntuples
+odName = sys.argv[5] ## output directory name
+unskimmedFileList = sys.argv[6] if len(sys.argv) >= 7 else None
+if unskimmedFileList in (None, "", "None", "none", "NULL", "null", "-"):
+    unskimmedFileList = None
+
+config = yaml.safe_load(open(configFile))
+steps = config['steps']
+hists = config['hists']
+
+ofName = odName+'/'+os.path.basename(dName)+".root"
+if os.path.exists(ofName): sys.exit(1)
+if not os.path.exists(odName):
+    try: os.makedirs(odName)
+    except: pass
+
+#chain = TChain("Friends")
+chain = TChain("Events")
+chain.Add(dName+"/*_Skim.root")
+gROOT.SetBatch(True)
+
+if 'NPROC' in os.environ:
+    nProc = os.environ['NPROC']
+    prf = TProof.Open("workers=%s" % nProc)
+    chain.SetProof(True)
+
+print("Processing", ofName)
+if unskimmedFileList:
+    print("Using unskimmed NanoAOD file list for normalization:", unskimmedFileList)
+
+oFile = TFile(ofName, 'recreate')
+
+hWeights = {}
+for istep, step in enumerate(steps):
+    weights = baseWeight.split('*')
+    if 'weightsToDrop' in step:
+        weights = list(set(weights)-set(step['weightsToDrop']))
+
+    cuts = [baseCut]+step['cuts']
+    cut = '&&'.join(['(%s)' % x for x in cuts])
+
+    dout = oFile.mkdir(step['name'])
+    dout.cd()
+
+    ## Fill Weight histogram first
+    hWeight = TH1D("hWeight", "weight;weight;Events", 150, -5, 10)
+    hWeight.Sumw2()
+    chain.Draw("%s>>hWeight" % ('*'.join(weights)), cut, "goff")
+    hWeight.Write()
+    hWeights[step['name']] = hWeight
+
+    ## Fill histograms in this step
+    if 'hists' not in step: continue
+    for hname, hdef in [(x, hists[x]) for x in step['hists'] if x in hists]:
+        h = None
+        bins = hdef['bins']
+        if type(bins) == list:
+            if len(bins) == 2 and type(bins[0]) == list:
+                h = TH2D('h'+hname, hdef['title'], len(bins[0])-1, array('d', bins[0]),
+                                               len(bins[1])-1, array('d', bins[1]))
+            else:
+                h = TH1D('h'+hname, hdef['title'], len(bins)-1, array('d', bins))
+        else:
+            if 'nbinsY' in bins:
+                h = TH2D('h'+hname, hdef['title'], bins['nbinsX'], bins['xmin'], bins['xmax'],
+                                               bins['nbinsY'], bins['ymin'], bins['ymax'])
+            else:
+                h = TH1D('h'+hname, hdef['title'], bins['nbinsX'], bins['xmin'], bins['xmax'])
+        h.Sumw2()
+        #h.SetDirectory(dout)
+
+        expr = hdef['expr'] if 'expr' in hdef else hname
+
+        weights1 = weights[:]
+        if 'weightsToDrop' in hdef:
+            weights1 = list(set(weights)-set(hdef['weightsToDrop']))
+        weight1 = '*'.join(weights1)
+
+        cuts1 = cuts[:]
+        if 'cuts' in hdef:
+            cuts1 = list(set(cuts)|set(hdef['cuts']))
+        if 'cutsToDrop' in hdef:
+            cuts1 = list(set(cuts)-set(hdef['cutsToDrop']))
+        cut1 = '&&'.join(['(%s)' % x for x in cuts1 if x != "1"])
+        if cut1 == "": cut1 = "1"
+
+        if weight1 != "1":
+            chain.Draw("%s>>h%s" % (expr, hname), "(%s)*(%s)" % (weight1, cut1), "goff")
+        else:
+            chain.Draw("%s>>h%s" % (expr, hname), "(%s)" % (cut1), "goff")
+
+        h.Write()
+        del h
+
+def _read_file_list(file_list_name):
+    ret = []
+    if not file_list_name or not os.path.exists(file_list_name):
+        return ret
+    with open(file_list_name) as fin:
+        for line in fin:
+            line = line.strip()
+            if line == "" or line.startswith("#"):
+                continue
+            ret.append(line)
+    return ret
+
+def _cache_name_for_file_list(file_list_name):
+    with open(file_list_name, "rb") as fin:
+        payload = fin.read()
+    digest = hashlib.md5(payload).hexdigest()
+    cache_dir = ".tzwi_event_counter_cache"
+    if not os.path.exists(cache_dir):
+        try: os.makedirs(cache_dir)
+        except: pass
+    base = os.path.basename(file_list_name).replace(".txt", "")
+    return os.path.join(cache_dir, "%s.%s.counter" % (base, digest))
+
+def _read_counter_cache(cache_name):
+    if not cache_name or not os.path.exists(cache_name):
+        return None
+    try:
+        with open(cache_name) as fin:
+            vals = fin.read().strip().split()
+        if len(vals) < 2:
+            return None
+        return float(vals[0]), float(vals[1])
+    except Exception:
+        return None
+
+def _write_counter_cache(cache_name, sum_sign, count):
+    if not cache_name:
+        return
+    tmp_name = "%s.tmp.%d" % (cache_name, os.getpid())
+    try:
+        with open(tmp_name, "w") as fout:
+            fout.write("%.17g %.17g\n" % (sum_sign, count))
+        os.rename(tmp_name, cache_name)
+    except Exception as err:
+        print("[WARNING] Could not write normalization cache:", cache_name, err)
+        try:
+            if os.path.exists(tmp_name): os.remove(tmp_name)
+        except Exception:
+            pass
+
+def _get_sum_sign_from_events_tree(events, file_index):
+    if not events or not events.GetBranch("genWeight"):
+        return None
+
+    # Fill one histogram with the sign of genWeight: -1, 0, +1.
+    # This avoids a slow Python event loop over all unskimmed NanoAOD events.
+    # The histogram is created by TTree::Draw under gROOT so that it is not
+    # attached to the input file.
+    hname = "__hGenWeightSign_%d_%d" % (os.getpid(), file_index)
+    old_dir = gDirectory
+    gROOT.cd()
+    old_obj = gROOT.FindObject(hname)
+    if old_obj:
+        old_obj.Delete()
+
+    events.Draw("((genWeight>0)-(genWeight<0))>>%s(3,-1.5,1.5)" % hname, "", "goff")
+    hsign = gROOT.FindObject(hname)
+    if not hsign:
+        if old_dir:
+            old_dir.cd()
+        print("[WARNING] Could not create temporary genWeight-sign histogram for file index:", file_index)
+        return None
+
+    sum_sign = hsign.GetBinContent(3) - hsign.GetBinContent(1)
+    hsign.Delete()
+    if old_dir:
+        old_dir.cd()
+    return float(sum_sign)
+
+def _get_count_from_runs_or_events(fin, events):
+    count = None
+    runs = fin.Get("Runs")
+    if runs and runs.InheritsFrom("TTree") and runs.GetBranch("genEventCount"):
+        count = 0.0
+        for ientry in range(runs.GetEntries()):
+            runs.GetEntry(ientry)
+            count += float(runs.genEventCount)
+    elif events:
+        count = float(events.GetEntries())
+    return count
+
+def get_unskimmed_normalization_from_file_list(file_list_name):
+    """Return (sum sign(genWeight), sum genEventCount) from unskimmed NanoAOD files."""
+    if not file_list_name:
+        return None
+    if not os.path.exists(file_list_name):
+        print("[WARNING] Unskimmed file list does not exist:", file_list_name)
+        return None
+
+    cache_name = _cache_name_for_file_list(file_list_name)
+    cached = _read_counter_cache(cache_name)
+    if cached is not None:
+        print("[INFO] Loaded normalization counter from cache:", cache_name)
+        return cached
+
+    file_names = _read_file_list(file_list_name)
+    if len(file_names) == 0:
+        print("[WARNING] Unskimmed file list is empty:", file_list_name)
+        return None
+
+    total_sum_sign = 0.0
+    total_count = 0.0
+    n_ok = 0
+
+    print("[INFO] Computing normalization from unskimmed NanoAOD files:", file_list_name)
+    print("[INFO] Number of unskimmed files:", len(file_names))
+
+    for idx, fName in enumerate(file_names):
+        fin = TFile.Open(fName)
+        if (not fin) or fin.IsZombie():
+            print("[WARNING] Could not open unskimmed file:", fName)
+            continue
+
+        events = fin.Get("Events")
+        if not events or not events.InheritsFrom("TTree"):
+            print("[WARNING] No Events TTree in unskimmed file:", fName)
+            fin.Close()
+            continue
+
+        sum_sign = _get_sum_sign_from_events_tree(events, idx)
+        count = _get_count_from_runs_or_events(fin, events)
+
+        if sum_sign is None:
+            print("[WARNING] No genWeight branch in unskimmed file:", fName)
+        else:
+            total_sum_sign += sum_sign
+
+        if count is None:
+            print("[WARNING] Could not get event count from Runs.genEventCount or Events entries:", fName)
+        else:
+            total_count += count
+
+        if sum_sign is not None or count is not None:
+            n_ok += 1
+
+        fin.Close()
+
+        if (idx + 1) % 20 == 0 or (idx + 1) == len(file_names):
+            print("[INFO]   processed %d/%d unskimmed files" % (idx + 1, len(file_names)))
+
+    if n_ok == 0:
+        print("[WARNING] Failed to compute normalization from all files in:", file_list_name)
+        return None
+
+    _write_counter_cache(cache_name, total_sum_sign, total_count)
+    print("[INFO] Computed normalization:")
+    print("       nEventsGenWeighted = sum sign(genWeight) =", total_sum_sign)
+    print("       nEvents            = genEventCount        =", total_count)
+    return total_sum_sign, total_count
+
+def get_skim_counter_from_chain(chain):
+    """Return counters stored in skim ROOT files, if present.
+
+    The old NanoAODv9 skims have histograms named nEventsGenWeighted and nEvents.
+    Run-3 NanoAODv15 skims may not have them, in which case the caller should
+    use the unskimmed NanoAOD file list.
+    """
+    sumw = 0.0
+    count = 0.0
+    found_sumw = False
+    found_count = False
+
+    fins = chain.GetListOfFiles()
+    for fName in [fins.At(i).GetTitle() for i in range(fins.GetEntries())]:
+        fin = TFile.Open(fName)
+        if (not fin) or fin.IsZombie():
+            print("[WARNING] Could not open skim file for counter:", fName)
+            continue
+        h = fin.Get("nEventsGenWeighted")
+        hNW = fin.Get("nEvents")
+        if h != None:
+            sumw += h.Integral()
+            found_sumw = True
+        if hNW != None:
+            count += hNW.Integral()
+            found_count = True
+        fin.Close()
+
+    return sumw, count, found_sumw, found_count
+
+oFile.cd()
+hCutFlow = TH1D("hCutFlow", "Cut flow;;Events", len(steps)+1, 0, len(steps)+1)
+hCutFlowNW = TH1D("hCutFlowNW", "Cut flow No Weight;;Events (unweighted)", len(steps)+1, 0, len(steps)+1)
+hCutFlow.Sumw2()
+hCutFlowNW.Sumw2()
+for istep, step in enumerate(steps):
+    stepName = step['name']
+
+    hCutFlow.GetXaxis().SetBinLabel(istep+2, stepName)
+    hCutFlowNW.GetXaxis().SetBinLabel(istep+2, stepName)
+
+    nEventNW = hWeights[stepName].GetEntries()
+    avgW = hWeights[stepName].GetMean()
+    hCutFlowNW.SetBinContent(istep+2, nEventNW)
+    #hCutFlowNW.SetBinError(istep+2, sqrt(nEventNW))
+    hCutFlow.SetBinContent(istep+2, nEventNW*avgW)
+    #rmsW = hWeights[step['name']].GetRMS()
+    #hCutFlow.SetBinError(istep+2, sqrt(rms*avgW*nEventNW))
+
+skim_sumw, skim_count, found_skim_sumw, found_skim_count = get_skim_counter_from_chain(chain)
+
+norm_sumw = skim_sumw if found_skim_sumw else None
+norm_count = skim_count if found_skim_count else None
+
+if (norm_sumw is None or norm_count is None) and unskimmedFileList:
+    unskimmed_counter = get_unskimmed_normalization_from_file_list(unskimmedFileList)
+    if unskimmed_counter is not None:
+        unskimmed_sumw, unskimmed_count = unskimmed_counter
+        if norm_sumw is None:
+            norm_sumw = unskimmed_sumw
+        if norm_count is None:
+            norm_count = unskimmed_count
+
+if norm_sumw is not None:
+    hCutFlow.SetBinContent(1, norm_sumw)
+else:
+    print("[WARNING] nEventsGenWeighted was not found and could not be computed.")
+    print("          hCutFlow bin 1 will remain 0 for:", ofName)
+
+if norm_count is not None:
+    hCutFlowNW.SetBinContent(1, norm_count)
+else:
+    print("[WARNING] nEvents was not found and could not be computed.")
+    print("          hCutFlowNW bin 1 will remain 0 for:", ofName)
+
+oFile.cd()
+hCutFlow.Write()
+hCutFlowNW.Write()
+oFile.Close()
