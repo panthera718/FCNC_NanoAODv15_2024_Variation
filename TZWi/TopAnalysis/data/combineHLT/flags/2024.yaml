@@ -1,0 +1,20 @@
+RunIIISummer24: "
+  Flag_goodVertices
+  && Flag_globalSuperTightHalo2016Filter
+  && Flag_EcalDeadCellTriggerPrimitiveFilter
+  && Flag_BadPFMuonFilter
+  && Flag_BadPFMuonDzFilter
+  && Flag_hfNoisyHitsFilter
+  && Flag_eeBadScFilter
+  && Flag_ecalBadCalibFilter
+"
+Run2024: "
+  Flag_goodVertices
+  && Flag_globalSuperTightHalo2016Filter
+  && Flag_EcalDeadCellTriggerPrimitiveFilter
+  && Flag_BadPFMuonFilter
+  && Flag_BadPFMuonDzFilter
+  && Flag_hfNoisyHitsFilter
+  && Flag_eeBadScFilter
+  && Flag_ecalBadCalibFilter
+"

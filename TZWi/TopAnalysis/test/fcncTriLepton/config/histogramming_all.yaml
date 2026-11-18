@@ -1,0 +1,1064 @@
+weight_list:
+    weight__central: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight*L1PreFiringWeight_Nom"
+    weight__PUUp: "(abs(genWeight)/genWeight)*puWeightUp*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight*L1PreFiringWeight_Nom"
+    weight__PUDown: "(abs(genWeight)/genWeight)*puWeightDown*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight*L1PreFiringWeight_Nom"
+    weight__ElSFUp: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*(Electron_SF + Electron_SFerr)*Muon_SF*BtagWeight*L1PreFiringWeight_Nom"
+    weight__ElSFDown: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*(Electron_SF - Electron_SFerr)*Muon_SF*BtagWeight*L1PreFiringWeight_Nom"
+    weight__ElSFStatUp: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*(Electron_SF + Electron_SFerrStat)*Muon_SF*BtagWeight*L1PreFiringWeight_Nom"
+    weight__ElSFStatDown: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*(Electron_SF - Electron_SFerrStat)*Muon_SF*BtagWeight*L1PreFiringWeight_Nom"
+    weight__ElSFSystUp: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*(Electron_SF + Electron_SFerrSyst)*Muon_SF*BtagWeight*L1PreFiringWeight_Nom"
+    weight__ElSFSystDown: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*(Electron_SF - Electron_SFerrSyst)*Muon_SF*BtagWeight*L1PreFiringWeight_Nom"
+    weight__ElRecoSFUp: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*(Electron_RecoSF + Electron_RecoSFerr)*Electron_SF*Muon_SF*BtagWeight*L1PreFiringWeight_Nom"
+    weight__ElRecoSFDown: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*(Electron_RecoSF - Electron_RecoSFerr)*Electron_SF*Muon_SF*BtagWeight*L1PreFiringWeight_Nom"
+    weight__MuSFUp: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*(Muon_SF + Muon_SFerr)*BtagWeight*L1PreFiringWeight_Nom"
+    weight__MuSFDown: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*(Muon_SF - Muon_SFerr)*BtagWeight*L1PreFiringWeight_Nom"
+    weight__MuSFStatUp: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*(Muon_SF + Muon_SFerrStat)*BtagWeight*L1PreFiringWeight_Nom"
+    weight__MuSFStatDown: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*(Muon_SF - Muon_SFerrStat)*BtagWeight*L1PreFiringWeight_Nom"
+    weight__MuSFSystUp: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*(Muon_SF + Muon_SFerrSyst)*BtagWeight*L1PreFiringWeight_Nom"
+    weight__MuSFSystDown: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*(Muon_SF - Muon_SFerrSyst)*BtagWeight*L1PreFiringWeight_Nom"
+    weight__PSWeightISRUp: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight*(PSWeight[0])*L1PreFiringWeight_Nom"
+    weight__PSWeightISRDown: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight*(PSWeight[2])*L1PreFiringWeight_Nom"
+    weight__PSWeightFSRUp: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight*(PSWeight[1])*L1PreFiringWeight_Nom"
+    weight__PSWeightFSRDown: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight*(PSWeight[3])*L1PreFiringWeight_Nom"
+    weight__JetPUIDUp: "(abs(genWeight)/genWeight)*puWeight*(JetPUID_SF + JetPUID_SFerr)*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight*L1PreFiringWeight_Nom"
+    weight__JetPUIDDown: "(abs(genWeight)/genWeight)*puWeight*(JetPUID_SF - JetPUID_SFerr)*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight*L1PreFiringWeight_Nom"
+    weight__BtagLFUp: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight_btagSF_deepjet_shape_up_lf*L1PreFiringWeight_Nom"
+    weight__BtagLFDown: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight_btagSF_deepjet_shape_down_lf*L1PreFiringWeight_Nom"
+    weight__BtagHFUp: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight_btagSF_deepjet_shape_up_hf*L1PreFiringWeight_Nom"
+    weight__BtagHFDown: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight_btagSF_deepjet_shape_down_hf*L1PreFiringWeight_Nom"
+    weight__BtagHFStats1Up: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight_btagSF_deepjet_shape_up_hfstats1*L1PreFiringWeight_Nom"
+    weight__BtagHFStats1Down: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight_btagSF_deepjet_shape_down_hfstats1*L1PreFiringWeight_Nom"
+    weight__BtagHFStats2Up: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight_btagSF_deepjet_shape_up_hfstats2*L1PreFiringWeight_Nom"
+    weight__BtagHFStats2Down: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight_btagSF_deepjet_shape_down_hfstats2*L1PreFiringWeight_Nom"
+    weight__BtagLFStats1Up: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight_btagSF_deepjet_shape_up_lfstats1*L1PreFiringWeight_Nom"
+    weight__BtagLFStats1Down: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight_btagSF_deepjet_shape_down_lfstats1*L1PreFiringWeight_Nom"
+    weight__BtagLFStats2Up: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight_btagSF_deepjet_shape_up_lfstats2*L1PreFiringWeight_Nom"
+    weight__BtagLFStats2Down: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight_btagSF_deepjet_shape_down_lfstats2*L1PreFiringWeight_Nom"
+    weight__BtagCQErr1Up: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight_btagSF_deepjet_shape_up_cferr1*L1PreFiringWeight_Nom"
+    weight__BtagCQErr1Down: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight_btagSF_deepjet_shape_down_cferr1*L1PreFiringWeight_Nom"
+    weight__BtagCQErr2Up: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight_btagSF_deepjet_shape_up_cferr2*L1PreFiringWeight_Nom"
+    weight__BtagCQErr2Down: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight_btagSF_deepjet_shape_down_cferr2*L1PreFiringWeight_Nom"
+    weight__L1PreFiringWeightUp: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight*L1PreFiringWeight_Up"
+    weight__L1PreFiringWeightDown: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*Electron_RecoSF*Electron_SF*Muon_SF*BtagWeight*L1PreFiringWeight_Dn"
+
+    weight__FakeRateMC: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*FakeElectron_RecoSF*FakeElectron_SF*FakeMuon_SF*BtagWeight*FakeRateWeight*L1PreFiringWeight_Nom"
+    weight__FakeRateData: "FakeRateWeight"
+    weight__FakeRateUpMC: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*FakeElectron_RecoSF*FakeElectron_SF*FakeMuon_SF*BtagWeight*(FakeRateWeight+FakeRateWeightError)*L1PreFiringWeight_Nom"
+    weight__FakeRateDownMC: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*FakeElectron_RecoSF*FakeElectron_SF*FakeMuon_SF*BtagWeight*(FakeRateWeight-FakeRateWeightError)*L1PreFiringWeight_Nom"
+    weight__FakeRateUpData: "(FakeRateWeight+FakeRateWeightError)"
+    weight__FakeRateDownData: "(FakeRateWeight-FakeRateWeightError)"
+    weight__NonFR_AR: "(abs(genWeight)/genWeight)*puWeight*JetPUID_SF*FakeElectron_RecoSF*FakeElectron_SF*FakeMuon_SF*BtagWeight*L1PreFiringWeight_Nom"
+
+steps:
+
+    - name: "BasicSelection_251010"
+      cuts: ["CutStep >= 1", "JetVetoSum < 1"]
+      hists: [ # "NEvents",
+              "W_MT", "MET_pt", "MET_phi",
+              "ptsortLepton1_pt", "ptsortLepton2_pt", "ptsortLepton3_pt",
+              "ptsortLepton1_eta", "ptsortLepton2_eta", "ptsortLepton3_eta",
+              "ptsortGoodJet1_pt", "ptsortGoodJet2_pt", "ptsortGoodJet3_pt",
+              "ptsortGoodJet1_eta", "ptsortGoodJet2_eta", "ptsortGoodJet3_eta",
+              "nGoodJet", "nBjet"]
+
+    - name: "nBjet1_251010"
+      cuts: ["CutStep >= 1", "JetVetoSum < 1", "nBjet >= 1"]
+      hists: [ # "NEvents",
+              "W_MT", "MET_pt", "MET_phi",
+              "ptsortLepton1_pt", "ptsortLepton2_pt", "ptsortLepton3_pt",
+              "ptsortLepton1_eta", "ptsortLepton2_eta", "ptsortLepton3_eta",
+              "ptsortGoodJet1_pt", "ptsortGoodJet2_pt", "ptsortGoodJet3_pt",
+              "ptsortGoodJet1_eta", "ptsortGoodJet2_eta", "ptsortGoodJet3_eta",
+              "nGoodJet", "nBjet"]
+
+    - name: "nBjet2_251010"
+      cuts: ["CutStep >= 1", "JetVetoSum < 1", "nBjet >= 2"]
+      hists: [ # "NEvents",
+              "W_MT", "MET_pt", "MET_phi",
+              "ptsortLepton1_pt", "ptsortLepton2_pt", "ptsortLepton3_pt",
+              "ptsortLepton1_eta", "ptsortLepton2_eta", "ptsortLepton3_eta",
+              "ptsortGoodJet1_pt", "ptsortGoodJet2_pt", "ptsortGoodJet3_pt",
+              "ptsortGoodJet1_eta", "ptsortGoodJet2_eta", "ptsortGoodJet3_eta",
+              "nGoodJet", "nBjet"]
+
+    - name: "BasicSelection_251010_MET30WMT30"
+      cuts: ["CutStep >= 1", "JetVetoSum < 1", "MET_pt > 30.0", "W_MT > 30.0"]
+      hists: [ # "NEvents",
+              "W_MT", "MET_pt", "MET_phi",
+              "ptsortLepton1_pt", "ptsortLepton2_pt", "ptsortLepton3_pt",
+              "ptsortLepton1_eta", "ptsortLepton2_eta", "ptsortLepton3_eta",
+              "ptsortGoodJet1_pt", "ptsortGoodJet2_pt", "ptsortGoodJet3_pt",
+              "ptsortGoodJet1_eta", "ptsortGoodJet2_eta", "ptsortGoodJet3_eta",
+              "nGoodJet", "nBjet"]
+
+    - name: "nBjet1_251010_MET30WMT30"
+      cuts: ["CutStep >= 1", "JetVetoSum < 1", "MET_pt > 30.0", "W_MT > 30.0", "nBjet >= 1"]
+      hists: [ # "NEvents",
+              "W_MT", "MET_pt", "MET_phi",
+              "ptsortLepton1_pt", "ptsortLepton2_pt", "ptsortLepton3_pt",
+              "ptsortLepton1_eta", "ptsortLepton2_eta", "ptsortLepton3_eta",
+              "ptsortGoodJet1_pt", "ptsortGoodJet2_pt", "ptsortGoodJet3_pt",
+              "ptsortGoodJet1_eta", "ptsortGoodJet2_eta", "ptsortGoodJet3_eta",
+              "nGoodJet", "nBjet"]
+
+    - name: "nBjet2_251010_MET30WMT30"
+      cuts: ["CutStep >= 1", "JetVetoSum < 1", "MET_pt > 30.0", "W_MT > 30.0", "nBjet >= 2"]
+      hists: [ # "NEvents",
+              "W_MT", "MET_pt", "MET_phi",
+              "ptsortLepton1_pt", "ptsortLepton2_pt", "ptsortLepton3_pt",
+              "ptsortLepton1_eta", "ptsortLepton2_eta", "ptsortLepton3_eta",
+              "ptsortGoodJet1_pt", "ptsortGoodJet2_pt", "ptsortGoodJet3_pt",
+              "ptsortGoodJet1_eta", "ptsortGoodJet2_eta", "ptsortGoodJet3_eta",
+              "nGoodJet", "nBjet"]
+
+    - name: "BasicSelection_251515"
+      cuts: ["CutStep >= 1", "JetVetoSum < 1", "ptsortLepton2_pt > 15", "ptsortLepton3_pt > 15"]
+      hists: [ # "NEvents",
+              "W_MT", "MET_pt", "MET_phi",
+              "ptsortLepton1_pt", "ptsortLepton2_pt", "ptsortLepton3_pt",
+              "ptsortLepton1_eta", "ptsortLepton2_eta", "ptsortLepton3_eta",
+              "ptsortGoodJet1_pt", "ptsortGoodJet2_pt", "ptsortGoodJet3_pt",
+              "ptsortGoodJet1_eta", "ptsortGoodJet2_eta", "ptsortGoodJet3_eta",
+              "nGoodJet", "nBjet"]
+
+    - name: "nBjet1_251515"
+      cuts: ["CutStep >= 1", "JetVetoSum < 1", "ptsortLepton2_pt > 15", "ptsortLepton3_pt > 15", "nBjet >= 1"]
+      hists: [ # "NEvents",
+              "W_MT", "MET_pt", "MET_phi",
+              "ptsortLepton1_pt", "ptsortLepton2_pt", "ptsortLepton3_pt",
+              "ptsortLepton1_eta", "ptsortLepton2_eta", "ptsortLepton3_eta",
+              "ptsortGoodJet1_pt", "ptsortGoodJet2_pt", "ptsortGoodJet3_pt",
+              "ptsortGoodJet1_eta", "ptsortGoodJet2_eta", "ptsortGoodJet3_eta",
+              "nGoodJet", "nBjet"]
+
+    - name: "nBjet2_251515"
+      cuts: ["CutStep >= 1", "JetVetoSum < 1", "ptsortLepton2_pt > 15", "ptsortLepton3_pt > 15", "nBjet >= 2"]
+      hists: [ # "NEvents",
+              "W_MT", "MET_pt", "MET_phi",
+              "ptsortLepton1_pt", "ptsortLepton2_pt", "ptsortLepton3_pt",
+              "ptsortLepton1_eta", "ptsortLepton2_eta", "ptsortLepton3_eta",
+              "ptsortGoodJet1_pt", "ptsortGoodJet2_pt", "ptsortGoodJet3_pt",
+              "ptsortGoodJet1_eta", "ptsortGoodJet2_eta", "ptsortGoodJet3_eta",
+              "nGoodJet", "nBjet"]
+
+    - name: "BasicSelection_251515_MET30WMT30"
+      cuts: ["CutStep >= 1", "JetVetoSum < 1", "ptsortLepton2_pt > 15", "ptsortLepton3_pt > 15", "MET_pt > 30.0", "W_MT > 30.0"]
+      hists: [ # "NEvents",
+              "W_MT", "MET_pt", "MET_phi",
+              "ptsortLepton1_pt", "ptsortLepton2_pt", "ptsortLepton3_pt",
+              "ptsortLepton1_eta", "ptsortLepton2_eta", "ptsortLepton3_eta",
+              "ptsortGoodJet1_pt", "ptsortGoodJet2_pt", "ptsortGoodJet3_pt",
+              "ptsortGoodJet1_eta", "ptsortGoodJet2_eta", "ptsortGoodJet3_eta",
+              "nGoodJet", "nBjet"]
+
+    - name: "nBjet1_251515_MET30WMT30"
+      cuts: ["CutStep >= 1", "JetVetoSum < 1", "ptsortLepton2_pt > 15", "ptsortLepton3_pt > 15", "MET_pt > 30.0", "W_MT > 30.0", "nBjet >= 1"]
+      hists: [ # "NEvents",
+              "W_MT", "MET_pt", "MET_phi",
+              "ptsortLepton1_pt", "ptsortLepton2_pt", "ptsortLepton3_pt",
+              "ptsortLepton1_eta", "ptsortLepton2_eta", "ptsortLepton3_eta",
+              "ptsortGoodJet1_pt", "ptsortGoodJet2_pt", "ptsortGoodJet3_pt",
+              "ptsortGoodJet1_eta", "ptsortGoodJet2_eta", "ptsortGoodJet3_eta",
+              "nGoodJet", "nBjet"]
+
+    - name: "nBjet2_251515_MET30WMT30"
+      cuts: ["CutStep >= 1", "JetVetoSum < 1", "ptsortLepton2_pt > 15", "ptsortLepton3_pt > 15", "MET_pt > 30.0", "W_MT > 30.0", "nBjet >= 2"]
+      hists: [ # "NEvents",
+              "W_MT", "MET_pt", "MET_phi",
+              "ptsortLepton1_pt", "ptsortLepton2_pt", "ptsortLepton3_pt",
+              "ptsortLepton1_eta", "ptsortLepton2_eta", "ptsortLepton3_eta",
+              "ptsortGoodJet1_pt", "ptsortGoodJet2_pt", "ptsortGoodJet3_pt",
+              "ptsortGoodJet1_eta", "ptsortGoodJet2_eta", "ptsortGoodJet3_eta",
+              "nGoodJet", "nBjet"]
+
+
+    - name: "BasicSelection_252020"
+      cuts: ["CutStep >= 1", "JetVetoSum < 1", "ptsortLepton2_pt > 20", "ptsortLepton3_pt > 20"]
+      hists: [ # "NEvents",
+              "W_MT", "MET_pt", "MET_phi",
+              "ptsortLepton1_pt", "ptsortLepton2_pt", "ptsortLepton3_pt",
+              "ptsortLepton1_eta", "ptsortLepton2_eta", "ptsortLepton3_eta",
+              "ptsortGoodJet1_pt", "ptsortGoodJet2_pt", "ptsortGoodJet3_pt",
+              "ptsortGoodJet1_eta", "ptsortGoodJet2_eta", "ptsortGoodJet3_eta",
+              "nGoodJet", "nBjet"]
+
+    - name: "nBjet1_252020"
+      cuts: ["CutStep >= 1", "JetVetoSum < 1", "ptsortLepton2_pt > 20", "ptsortLepton3_pt > 20", "nBjet >= 1"]
+      hists: [ # "NEvents",
+              "W_MT", "MET_pt", "MET_phi",
+              "ptsortLepton1_pt", "ptsortLepton2_pt", "ptsortLepton3_pt",
+              "ptsortLepton1_eta", "ptsortLepton2_eta", "ptsortLepton3_eta",
+              "ptsortGoodJet1_pt", "ptsortGoodJet2_pt", "ptsortGoodJet3_pt",
+              "ptsortGoodJet1_eta", "ptsortGoodJet2_eta", "ptsortGoodJet3_eta",
+              "nGoodJet", "nBjet"]
+
+    - name: "nBjet2_252020"
+      cuts: ["CutStep >= 1", "JetVetoSum < 1", "ptsortLepton2_pt > 20", "ptsortLepton3_pt > 20", "nBjet >= 2"]
+      hists: [ # "NEvents",
+              "W_MT", "MET_pt", "MET_phi",
+              "ptsortLepton1_pt", "ptsortLepton2_pt", "ptsortLepton3_pt",
+              "ptsortLepton1_eta", "ptsortLepton2_eta", "ptsortLepton3_eta",
+              "ptsortGoodJet1_pt", "ptsortGoodJet2_pt", "ptsortGoodJet3_pt",
+              "ptsortGoodJet1_eta", "ptsortGoodJet2_eta", "ptsortGoodJet3_eta",
+              "nGoodJet", "nBjet"]
+
+    - name: "BasicSelection_252020_MET30WMT30"
+      cuts: ["CutStep >= 1", "JetVetoSum < 1", "ptsortLepton2_pt > 20", "ptsortLepton3_pt > 20", "MET_pt > 30.0", "W_MT > 30.0"]
+      hists: [ # "NEvents",
+              "W_MT", "MET_pt", "MET_phi",
+              "ptsortLepton1_pt", "ptsortLepton2_pt", "ptsortLepton3_pt",
+              "ptsortLepton1_eta", "ptsortLepton2_eta", "ptsortLepton3_eta",
+              "ptsortGoodJet1_pt", "ptsortGoodJet2_pt", "ptsortGoodJet3_pt",
+              "ptsortGoodJet1_eta", "ptsortGoodJet2_eta", "ptsortGoodJet3_eta",
+              "nGoodJet", "nBjet"]
+
+    - name: "nBjet1_252020_MET30WMT30"
+      cuts: ["CutStep >= 1", "JetVetoSum < 1", "ptsortLepton2_pt > 20", "ptsortLepton3_pt > 20", "MET_pt > 30.0", "W_MT > 30.0", "nBjet >= 1"]
+      hists: [ # "NEvents",
+              "W_MT", "MET_pt", "MET_phi",
+              "ptsortLepton1_pt", "ptsortLepton2_pt", "ptsortLepton3_pt",
+              "ptsortLepton1_eta", "ptsortLepton2_eta", "ptsortLepton3_eta",
+              "ptsortGoodJet1_pt", "ptsortGoodJet2_pt", "ptsortGoodJet3_pt",
+              "ptsortGoodJet1_eta", "ptsortGoodJet2_eta", "ptsortGoodJet3_eta",
+              "nGoodJet", "nBjet"]
+
+    - name: "nBjet2_252020_MET30WMT30"
+      cuts: ["CutStep >= 1", "JetVetoSum < 1", "ptsortLepton2_pt > 20", "ptsortLepton3_pt > 20", "MET_pt > 30.0", "W_MT > 30.0", "nBjet >= 2"]
+      hists: [ # "NEvents",
+              "W_MT", "MET_pt", "MET_phi",
+              "ptsortLepton1_pt", "ptsortLepton2_pt", "ptsortLepton3_pt",
+              "ptsortLepton1_eta", "ptsortLepton2_eta", "ptsortLepton3_eta",
+              "ptsortGoodJet1_pt", "ptsortGoodJet2_pt", "ptsortGoodJet3_pt",
+              "ptsortGoodJet1_eta", "ptsortGoodJet2_eta", "ptsortGoodJet3_eta",
+              "nGoodJet", "nBjet"]
+
+hists:
+#    NEvents:
+#        title: "NEvents;Number of Events;Events / 1"
+#        bins:
+#            nbinsX: 1
+#            xmin: 0
+#            xmax: 1
+
+    Lepton1_pt:
+        title: "Lepton1_pt;Leading lepton p_{T} (GeV) (Not p_{T} order);Events / 30.00 GeV"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 300
+    Lepton1_eta:
+        title: "Lepton1_eta;Leading lepton #eta (Not p_{T} order);Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: -2.5
+            xmax: 2.5
+    Lepton1_phi:
+        title: "Lepton1_phi;Leading lepton #phi (radian) (Not p_{T} order);Events / 0.64 radian"
+        bins:
+            nbinsX: 10
+            xmin: -3.2
+            xmax:  3.2
+
+    Lepton2_pt:
+        title: "Lepton2_pt;2nd leading lepton p_{T} (GeV) (Not p_{T} order);Events / 20.00 GeV"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 200
+    Lepton2_eta:
+        title: "Lepton2_eta;2nd leading lepton #eta (Not p_{T} order);Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: -2.5
+            xmax: 2.5
+    Lepton2_phi:
+        title: "Lepton2_phi;2nd leading lepton #phi (radian) (Not p_{T} order);Events / 0.64 radian"
+        bins:
+            nbinsX: 10
+            xmin: -3.2
+            xmax:  3.2
+
+    Lepton3_pt:
+        title: "Lepton3_pt;3rd leading lepton p_{T} (GeV) (Not p_{T} order);Events / 20.00 GeV"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 200
+    Lepton3_eta:
+        title: "Lepton3_eta;3rd leading lepton #eta (Not p_{T} order);Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: -2.5
+            xmax: 2.5
+    Lepton3_phi:
+        title: "Lepton3_phi;3rd leading lepton #phi (radian) (Not p_{T} order);Events / 0.64 radian"
+        bins:
+            nbinsX: 10
+            xmin: -3.2
+            xmax:  3.2
+
+    ptsortLepton1_pt:
+        title: "ptsortLepton1_pt;Leading lepton p_{T} (GeV);Events / 30.00 GeV"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 300
+    ptsortLepton1_eta:
+        title: "ptsortLepton1_eta;Leading lepton #eta;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: -2.5
+            xmax: 2.5
+    ptsortLepton1_phi:
+        title: "ptsortLepton1_phi;Leading lepton #phi (radian);Events / 0.64 radian"
+        bins:
+            nbinsX: 10
+            xmin: -3.2
+            xmax:  3.2
+
+    ptsortLepton2_pt:
+        title: "ptsortLepton2_pt;2nd leading lepton p_{T} (GeV);Events / 20.00 GeV"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 200
+    ptsortLepton2_eta:
+        title: "ptsortLepton2_eta;2nd leading lepton #eta;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: -2.5
+            xmax: 2.5
+    ptsortLepton2_phi:
+        title: "ptsortLepton2_phi;2nd leading lepton #phi (radian);Events / 0.64 radian"
+        bins:
+            nbinsX: 10
+            xmin: -3.2
+            xmax:  3.2
+
+    ptsortLepton3_pt:
+        title: "ptsortLepton3_pt;3rd leading lepton p_{T} (GeV);Events / 20.00 GeV"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 200
+    ptsortLepton3_eta:
+        title: "ptsortLepton3_eta;3rd leading lepton #eta;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: -2.5
+            xmax: 2.5
+    ptsortLepton3_phi:
+        title: "ptsortLepton3_phi;3rd leading lepton #phi (radian);Events / 0.64 radian"
+        bins:
+            nbinsX: 10
+            xmin: -3.2
+            xmax:  3.2
+
+    ptsortGoodJet1_pt:
+        title: "ptsortGoodJet1_pt;Leading jet p_{T} (GeV);Events / 30.00 GeV"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 300
+    ptsortGoodJet1_eta:
+        title: "ptsortGoodJet1_eta;Leading jet #eta;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: -2.5
+            xmax: 2.5
+    ptsortGoodJet1_phi:
+        title: "ptsortGoodJet1_phi;Leading jet #phi (radian);Events / 0.64 radian"
+        bins:
+            nbinsX: 10
+            xmin: -3.2
+            xmax:  3.2
+
+    ptsortGoodJet2_pt:
+        title: "ptsortGoodJet2_pt;2nd leading jet p_{T} (GeV);Events / 20.00 GeV"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 200
+    ptsortGoodJet2_eta:
+        title: "ptsortGoodJet2_eta;2nd leading jet #eta;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: -2.5
+            xmax: 2.5
+    ptsortGoodJet2_phi:
+        title: "ptsortGoodJet2_phi;2nd leading jet #phi (radian);Events / 0.64 radian"
+        bins:
+            nbinsX: 10
+            xmin: -3.2
+            xmax:  3.2
+
+    ptsortGoodJet3_pt:
+        title: "ptsortGoodJet3_pt;3rd leading jet p_{T} (GeV);Events / 20.00 GeV"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 200
+    ptsortGoodJet3_eta:
+        title: "ptsortGoodJet3_eta;3rd leading jet #eta;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: -2.5
+            xmax: 2.5
+    ptsortGoodJet3_phi:
+        title: "ptsortGoodJet3_phi;3rd leading jet #phi (radian);Events / 0.64 radian"
+        bins:
+            nbinsX: 10
+            xmin: -3.2
+            xmax:  3.2
+
+    Z_pt:
+        title: "Z_pt;Z p_{T} (GeV);Events / 30.00 GeV"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 300
+    Z_eta:
+        title: "Z_eta;Z #eta;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: -2.5
+            xmax: 2.5
+    Z_phi:
+        title: "Z_phi;Z #phi (radian);Events / 0.64 radian"
+        bins:
+            nbinsX: 10
+            xmin: -3.2
+            xmax:  3.2
+##    Z_mass:
+##        title: "Z_mass;Z mass (GeV);Events / 10.00 GeV"
+##        bins:
+##            nbinsX: 41
+##            xmin: 29.5
+##            xmax: 152.5
+
+##    KinTopWb_mass:
+##        title: "KinTopWb_mass;SMTop mass (GeV);Events / 10.00 GeV"
+##        bins:
+##            nbinsX: 111
+##            xmin: 6
+##            xmax: 339
+##    KinTopZq_mass:
+##        title: "KinTopZq_mass;FCNCTop mass (GeV);Events / 10.00 GeV"
+##        bins:
+##            nbinsX: 111
+##            xmin: 6
+##            xmax: 339
+    KinTopWb_mass_KinTopZq_mass:
+        title: "SMTop mass (GeV) vs FCNCTop mass (GeV);SMTop mass (Events / 10.00 GeV);FCNCTop mass (Events / 10.00 GeV);"
+        expr: "KinTopZq_mass:KinTopWb_mass" # y:x
+        bins:
+            nbinsX: 35
+            xmin: 22.5
+            xmax: 372.5
+            nbinsY: 35
+            ymin: 22.5
+            ymax: 372.5
+
+##    KinTopWb_pt:
+##        title: "KinTopWb_pt;SMTop p_{T} (GeV);Events / 30.00 GeV"
+##        bins:
+##            nbinsX: 20
+##            xmin: 0
+##            xmax: 300
+##    KinTopWb_eta:
+##        title: "KinTopWb_eta;SMTop #eta;Events / 0.50"
+##        bins:
+##            nbinsX: 20
+##            xmin: -2.5
+##            xmax: 2.5
+##    KinTopWb_phi:
+##        title: "KinTopWb_phi;SMTop #phi (radian);Events / 0.64 radian"
+##        bins:
+##            nbinsX: 16
+##            xmin: -3.2
+##            xmax:  3.2
+
+##    KinTopZq_pt:
+##        title: "KinTopZq_pt;FCNCTop p_{T} (GeV);Events / 30.00 GeV"
+##        bins:
+##            nbinsX: 20
+##            xmin: 0
+##            xmax: 300
+##    KinTopZq_eta:
+##        title: "KinTopZq_eta;FCNCTop #eta;Events / 0.50"
+##        bins:
+##            nbinsX: 20
+##            xmin: -2.5
+##            xmax: 2.5
+##    KinTopZq_phi:
+##        title: "KinTopZq_phi;FCNCTop #phi (radian);Events / 0.64 radian"
+##        bins:
+##            nbinsX: 16
+##            xmin: -3.2
+##            xmax:  3.2
+
+    nPV_noWeight:
+        title: "nPV_noWeight;Vertex multiplicity;Events (unweighted) / 1.00"
+        expr: "PV_npvsGood"
+        weightsToDrop: ["puWeight", "puWeightUp", "puWeightDown"]
+        bins:
+            nbinsX: 50
+            xmin: 0
+            xmax: 50
+    nPV:
+        title: "nPV;Vertex multiplicity;Events / 1.00"
+        expr: "PV_npvsGood"
+        bins:
+            nbinsX: 50
+            xmin: 0
+            xmax: 50
+##    MET_pt:
+##        title: "MET;Missing transverse momentum (GeV);Events / 30.00 GeV"
+##        bins: 
+##            nbinsX: 20
+##            xmin: 0
+##            xmax: 300
+##    MET_phi:
+##        title: "MET_phi;MET #phi (radian);Events / 0.64 radian"
+##        bins: 
+##            nbinsX: 16
+##            xmin: -3.2
+##            xmax:  3.2
+
+    nGoodJet:
+        title: "nGoodJet;Jet multiplicity;Events / 1.00"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 10
+    nBjet:
+        title: "nBjet;Bjet multiplicity;Events / 1.00"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 10
+    nGoodJet_nBjet:
+        title: "nGoodJet vs nBjet;nGoodJet;nBjet;Events / 1.00"
+        expr: "nBjet:nGoodJet" # y:x
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 10
+            nbinsY: 10
+            ymin: 0
+            ymax: 10
+    GoodJet_DeepFlavB:
+        title: "GoodJet_DeepFlavB;FCNC jet DeepFlavB;Events / 0.10"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 1
+
+    nUDSjet:
+        title: "nUDSjet;UDSjet multiplicity;Events / 1.00"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 10
+    nCjet:
+        title: "nCjet;Cjet multiplicity;Events / 1.00"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 10
+
+##    W_MT:
+##        title: "W_MT;Transeverse mass of W boson;Events / 30.00 GeV"
+##        bins:
+##            nbinsX: 20
+##            xmin: 0
+##            xmax: 300
+
+##    TriLepton_mass:
+##        title: "TriLepton_mass;Total invariant mass of leptons;Events / 25.00 GeV"
+##        bins:
+##            nbinsX: 20
+##            xmin: 0
+##            xmax: 500
+##    TriLepton_pt:
+##        title: "TriLepton_pt;Total lepton p_{T} of leptons;Events / 25.00 GeV"
+##        bins:
+##            nbinsX: 20
+##            xmin: 0
+##            xmax: 500
+
+    LeadingElectron_pt:
+        title: "LeadingElectron_pt;p_{T} of Leading e;Events / 30.00 GeV"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 300
+    LeadingElectron_eta:
+        title: "LeadingElectron_eta;#eta of Leading e;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: -2.5
+            xmax: 2.5
+    LeadingMuon_pt:
+        title: "LeadingMuon_pt;p_{T} of Leading #mu;Events / 30.00 GeV"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 300
+    LeadingMuon_eta:
+        title: "LeadingMuon_eta;#eta of Leading #mu;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: -2.5
+            xmax: 2.5
+
+
+
+
+
+    #############################
+    #### DNN input variables ####
+    #############################
+
+    TriLepton_pt:
+        title: "TriLepton_pt;Trilepton transverse momentum (GeV);Events / 50.00 GeV"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 500
+    TriLepton_mass:
+        title: "TriLepton_mass;Trilepton mass (GeV);Events / 50.00 GeV"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 500
+    Z_mass:
+        title: "Z_mass;Z mass (GeV);Events / 5.00 GeV"
+        bins:
+            nbinsX: 25
+            xmin: 30
+            xmax: 155
+
+    W_MT:
+        title: "W_MT;W transverse mass (GeV);Events / 5.00 GeV"
+        bins:
+            nbinsX: 60
+            xmin: 0
+            xmax: 300
+    MET_pt:
+        title: "MET;MET (GeV);Events / 5.00 GeV"
+        bins: 
+            nbinsX: 60
+            xmin: 0
+            xmax: 300
+    MET_phi:
+        title: "MET_phi;MET #phi (radian);Events / 0.64 radian"
+        bins:
+            nbinsX: 10
+            xmin: -3.2
+            xmax:  3.2
+
+    KinTopWb_pt:
+        title: "KinTopWb_pt;SMTop transverse momentum (GeV);Events / 30.00 GeV"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 300
+    KinTopWb_eta:
+        title: "KinTopWb_eta;SMTop #eta;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: -2.5
+            xmax: 2.5
+    KinTopWb_phi:
+        title: "KinTopWb_phi;SMTop #phi (radian);Events / 0.64 radian"
+        bins:
+            nbinsX: 10
+            xmin: -3.2
+            xmax:  3.2
+    KinTopWb_mass:
+        title: "KinTopWb_mass;SMTop mass (GeV);Events / 10.00 GeV"
+        bins:
+            nbinsX: 35
+            xmin: 22.5
+            xmax: 372.5
+
+    KinTopZq_pt:
+        title: "KinTopZq_pt;FCNCTop transverse momentum (GeV);Events / 30.00 GeV"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 300
+    KinTopZq_eta:
+        title: "KinTopZq_eta;FCNCTop #eta;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: -2.5
+            xmax: 2.5
+    KinTopZq_phi:
+        title: "KinTopZq_phi;FCNCTop #phi (radian);Events / 0.64 radian"
+        bins:
+            nbinsX: 10
+            xmin: -3.2
+            xmax:  3.2
+    KinTopZq_mass:
+        title: "KinTopZq_mass;FCNCTop mass (GeV);Events / 10.00 GeV"
+        bins:
+            nbinsX: 35
+            xmin: 22.5
+            xmax: 372.5
+
+    KinTop_dR:
+        title: "KinTop_dR;dR of SMTop/FCNCTop;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    KinTop_dphi:
+        title: "KinTop_dphi;d#phi of SMTop (radian)/FCNCTop;Events / 0.32 radian"
+        bins:
+            nbinsX: 10
+            xmin:  0
+            xmax:  3.2
+
+    KinTop_deta:
+        title: "KinTop_deta;d#eta of SMTop/FCNCTop;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+
+
+
+
+    TriLepton_WleptonZdR:
+        title: "TriLepton_WleptonZdR;dR of WL/Z;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    TriLepton_WleptonZdPhi:
+        title: "TriLepton_WleptonZdPhi;d#phi of WL/Z (radian);Events / 0.32 radian"
+        bins:
+            nbinsX: 10
+            xmin:  0
+            xmax:  3.2
+
+
+
+
+
+    MVAinput_WLZL1_dR:
+        title: "MVAinput_WLZL1_dR;dR of WL/ZL1;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    MVAinput_WLZL1_dPhi:
+        title: "MVAinput_WLZL1_dPhi;d#phi of WL/ZL1 (radian);Events / 0.32 radian"
+        bins:
+            nbinsX: 10
+            xmin:  0
+            xmax:  3.2
+
+    MVAinput_WLZL1_dEta:
+        title: "MVAinput_WLZL1_dEta;d#eta of WL/ZL1;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    MVAinput_WLZL2_dR:
+        title: "MVAinput_WLZL2_dR;dR of WL/ZL2;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    MVAinput_WLZL2_dPhi:
+        title: "MVAinput_WLZL2_dPhi;d#phi of WL/ZL2 (radian);Events / 0.32 radian"
+        bins:
+            nbinsX: 10
+            xmin:  0
+            xmax:  3.2
+
+    MVAinput_WLZL2_dEta:
+        title: "MVAinput_WLZL2_dEta;d#eta of WL/ZL2;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    MVAinput_ZL1ZL2_dR:
+        title: "MVAinput_ZL1ZL2_dR;dR of ZL1/ZL2;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    MVAinput_ZL1ZL2_dPhi:
+        title: "MVAinput_ZL1ZL2_dPhi;d#phi of ZL1/ZL2 (radian);Events / 0.32 radian"
+        bins:
+            nbinsX: 10
+            xmin:  0
+            xmax:  3.2
+
+    MVAinput_ZL1ZL2_dEta:
+        title: "MVAinput_ZL1ZL2_dEta;d#eta of ZL1/ZL2;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+
+
+
+
+    MVAinput_Wlepchapt:
+        title: "MVAinput_Wlepchapt;lepton charge from W * pt (GeV);Events / 30.00 GeV"
+        bins:
+            nbinsX: 16
+            xmin: -200
+            xmax:  200
+
+    MVAinput_Wlepchaeta:
+        title: "MVAinput_Wlepchaeta;lepton charge from W * #eta;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: -2.5
+            xmax: 2.5
+
+    MVAinput_WJ_DeepJetB:
+        title: "MVAinput_WJ_DeepJetB;DeepJetBtagger of SM jet;Events / 0.10"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 1
+
+    MVAinput_WJ_pt:
+        title: "MVAinput_WJ_pt;SM jet transverse momentum (GeV);Events / 30.00 GeV"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 300
+
+
+
+
+
+    MVAinput_WLWJ_dR:
+        title: "MVAinput_WLWJ_dR;dR of WL/SM jet;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    MVAinput_WLWJ_dPhi:
+        title: "MVAinput_WLWJ_dPhi;d#phi of WL/SM jet (radian);Events / 0.32 radian"
+        bins:
+            nbinsX: 10
+            xmin:  0
+            xmax:  3.2
+
+    MVAinput_WLWJ_dEta:
+        title: "MVAinput_WLWJ_dEta;d#eta of WL/SM jet;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    MVAinput_ZL1WJ_dR:
+        title: "MVAinput_ZL1WJ_dR;dR of ZL1/SM jet;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    MVAinput_ZL1WJ_dPhi:
+        title: "MVAinput_ZL1WJ_dPhi;d#phi of ZL1/SM jet (radian);Events / 0.32 radian"
+        bins:
+            nbinsX: 10
+            xmin:  0
+            xmax:  3.2
+
+    MVAinput_ZL1WJ_dEta:
+        title: "MVAinput_ZL1WJ_dEta;d#eta of ZL1/SM jet;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    MVAinput_ZL2WJ_dR:
+        title: "MVAinput_ZL2WJ_dR;dR of ZL2/SM jet;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    MVAinput_ZL2WJ_dPhi:
+        title: "MVAinput_ZL2WJ_dPhi;d#phi of ZL2/SM jet (radian);Events / 0.32 radian"
+        bins:
+            nbinsX: 10
+            xmin:  0
+            xmax:  3.2
+
+    MVAinput_ZL2WJ_dEta:
+        title: "MVAinput_ZL2WJ_dEta;d#eta of ZL2/SM jet;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    MVAinput_Z_WJ_dR:
+        title: "MVAinput_Z_WJ_dR;dR of Z/SM jet;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    MVAinput_Z_WJ_dPhi:
+        title: "MVAinput_Z_WJ_dPhi;d#phi of Z/SM jet (radian);Events / 0.32 radian"
+        bins:
+            nbinsX: 10
+            xmin:  0
+            xmax:  3.2
+
+    MVAinput_Z_WJ_dEta:
+        title: "MVAinput_Z_WJ_dEta;d#eta of Z/SM jet;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+
+
+
+
+    MVAinput_ZJ_DeepJetB:
+        title: "MVAinput_ZJ_DeepJetB;DeepJetBtagger of FCNC jet;Events / 0.10"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 1
+
+    MVAinput_ZJ_pt:
+        title: "MVAinput_ZJ_pt;FCNC jet transverse momentum (GeV);Events / 30.00 GeV"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 300
+
+
+
+
+
+    MVAinput_WLZJ_dR:
+        title: "MVAinput_WLZJ_dR;dR of WL/FCNC jet;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    MVAinput_WLZJ_dPhi:
+        title: "MVAinput_WLZJ_dPhi;d#phi of WL/FCNC jet (radian);Events / 0.32 radian"
+        bins:
+            nbinsX: 10
+            xmin:  0
+            xmax:  3.2
+
+    MVAinput_WLZJ_dEta:
+        title: "MVAinput_WLZJ_dEta;d#eta of WL/FCNC jet;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    MVAinput_ZL1ZJ_dR:
+        title: "MVAinput_ZL1ZJ_dR;dR of ZL1/FCNC jet;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    MVAinput_ZL1ZJ_dPhi:
+        title: "MVAinput_ZL1ZJ_dPhi;d#phi of ZL1/FCNC jet (radian);Events / 0.32 radian"
+        bins:
+            nbinsX: 10
+            xmin:  0
+            xmax:  3.2
+
+    MVAinput_ZL1ZJ_dEta:
+        title: "MVAinput_ZL1ZJ_dEta;d#eta of ZL1/FCNC jet;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    MVAinput_ZL2ZJ_dR:
+        title: "MVAinput_ZL2ZJ_dR;dR of ZL2/FCNC jet;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    MVAinput_ZL2ZJ_dPhi:
+        title: "MVAinput_ZL2ZJ_dPhi;d#phi of ZL2/FCNC jet (radian);Events / 0.32 radian"
+        bins:
+            nbinsX: 10
+            xmin:  0
+            xmax:  3.2
+
+    MVAinput_ZL2ZJ_dEta:
+        title: "MVAinput_ZL2ZJ_dEta;d#eta of ZL2/FCNC jet;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    MVAinput_Z_ZJ_dR:
+        title: "MVAinput_Z_ZJ_dR;dR of Z/FCNC jet;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    MVAinput_Z_ZJ_dPhi:
+        title: "MVAinput_Z_ZJ_dPhi;d#phi of Z/FCNC jet (radian);Events / 0.32 radian"
+        bins:
+            nbinsX: 10
+            xmin:  0
+            xmax:  3.2
+
+    MVAinput_Z_ZJ_dEta:
+        title: "MVAinput_Z_ZJ_dEta;d#eta of Z/FCNC jet;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+    MVAinput_WJZJ_dR:
+        title: "MVAinput_WJZJ_dR;dR of SM jet/FCNC jet;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
+
+
+    MVAinput_WJZJ_dPhi:
+        title: "MVAinput_WJZJ_dPhi;d#phi of SM jet/FCNC jet (radian);Events / 0.20 radian"
+        bins:
+            nbinsX: 10
+            xmin:  0
+            xmax:  3.2
+
+
+    MVAinput_WJZJ_dEta:
+        title: "MVAinput_WJZJ_dEta;d#eta of SM jet/FCNC jet;Events / 0.50"
+        bins:
+            nbinsX: 10
+            xmin: 0
+            xmax: 5
