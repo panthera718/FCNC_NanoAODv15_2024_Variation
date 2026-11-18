@@ -1,0 +1,11 @@
+#!/bin/bash
+
+JOBS=4
+
+find *NANOAOD*/ -name 'result_*.tgz' -print0 \
+  | xargs -0 -n1 -P"${JOBS}" sh -c '
+      tar -xzf "$1" ./ntuple_2024_leptonSF
+    ' _
+
+##find *NANOAOD*/ -name 'result_*.tgz' | awk '{print "xzf "$1" ./ntuple_2024_leptonSF"}' | xargs -L1 -P$(nproc) tar
+

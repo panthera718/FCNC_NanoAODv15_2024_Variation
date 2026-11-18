@@ -1,0 +1,130 @@
+# Fill lumi_pb with the certified 2024 luminosity used by the analysis.
+# Fill every sum_gen_weight with the sum of Runs.genEventSumw over the ORIGINAL
+# NanoAOD files belonging to that sample. Do not use the number of events and
+# do not use the number of selected SF-NTuple entries.
+lumi_pb: 109000.0
+
+selection:
+  # Baseline WZ enrichment. These values are configurable and should be varied
+  # for the measurement-region systematic study.
+  min_probe_pt: 10.0
+  min_met: 30.0
+  min_w_mt: 30.0
+  max_w_mt: null
+
+  # Analysis object definitions.
+  min_electron_cutbased: 3
+  min_electron_tightcharge: 2
+  electron_prompt_mva: 0.90
+  max_muon_pf_rel_iso04: 0.40
+  muon_prompt_mva: 0.70
+
+data:
+  deduplicate: true
+  inputs:
+    - "${LEPSF_BASE}/reco/${LEPSF_MODE}/EGamma*/*.root"
+    - "${LEPSF_BASE}/reco/${LEPSF_MODE}/Muon*/*.root"
+    - "${LEPSF_BASE}/reco/${LEPSF_MODE}/MuonEG*/*.root"
+
+signal:
+  name: WZto3LNu
+  inputs:
+    - "${LEPSF_BASE}/reco/${LEPSF_MODE}/WZto3LNu*/*.root"
+  weight_branch: SF_genWeight
+  xsec_pb: 5.297
+  sum_gen_weight: 1221944255.2106206
+  # WZ events whose selected probe is not prompt are not part of the signal
+  # efficiency and are subtracted from Data as a background component.
+  subtract_nonprompt_component: true
+
+backgrounds:
+  # Electron conversion / radiative DY backgrounds are essential in LepSFEl.
+  - name: DYGto2LG_4to50
+    inputs: ["${LEPSF_BASE}/reco/${LEPSF_MODE}/DYGto2LG-1Jets_Bin-MLL-4to50*/*.root"]
+    weight_branch: SF_genWeight
+    xsec_pb: 88.13
+    sum_gen_weight: 44627907277.716003
+
+  - name: DYGto2LG_50
+    inputs: ["${LEPSF_BASE}/reco/${LEPSF_MODE}/DYGto2LG-1Jets_Bin-MLL-50*/*.root"]
+    weight_branch: SF_genWeight
+    xsec_pb: 126.7
+    sum_gen_weight: 125063595602.08452
+
+  - name: WGtoLNuG
+    inputs: ["${LEPSF_BASE}/reco/${LEPSF_MODE}/WGtoLNuG-1Jets*/*.root"]
+    weight_branch: SF_genWeight
+    xsec_pb: 671.5
+    sum_gen_weight: 562746953095.8855
+
+  - name: ZZto4L
+    inputs: ["${LEPSF_BASE}/reco/${LEPSF_MODE}/ZZto4L*/*.root"]
+    weight_branch: SF_genWeight
+    xsec_pb: 1.65
+    sum_gen_weight: 329198063.93506986
+
+  - name: TTLL_4to50
+    inputs: ["${LEPSF_BASE}/reco/${LEPSF_MODE}/TTLL_Bin-MLL-4to50*/*.root"]
+    weight_branch: SF_genWeight
+    xsec_pb: 0.03949
+    sum_gen_weight: 116919.58803551004
+
+  - name: TTLL_50
+    inputs: ["${LEPSF_BASE}/reco/${LEPSF_MODE}/TTLL_Bin-MLL-50*/*.root"]
+    weight_branch: SF_genWeight
+    xsec_pb: 0.08646
+    sum_gen_weight: 340956.54948466003
+
+  - name: TZQB
+    inputs: ["${LEPSF_BASE}/reco/${LEPSF_MODE}/TZQB-Zto2L-4FS_Bin-MLL-30*/*.root"]
+    weight_branch: SF_genWeight
+    xsec_pb: 0.07968
+    sum_gen_weight: 721849.15164552
+
+  - name: TTto2L2Nu
+    inputs: ["${LEPSF_BASE}/reco/${LEPSF_MODE}/TTto2L2Nu*/*.root"]
+    weight_branch: SF_genWeight
+    xsec_pb: 98.09630
+    sum_gen_weight: 37820112169.870659
+
+  - name: WWZ
+    inputs: ["${LEPSF_BASE}/reco/${LEPSF_MODE}/WWZ*/*.root"]
+    weight_branch: SF_genWeight
+    xsec_pb: 0.19
+    sum_gen_weight: 2997995.9066717895
+
+  - name: WZZ
+    inputs: ["${LEPSF_BASE}/reco/${LEPSF_MODE}/WZZ*/*.root"]
+    weight_branch: SF_genWeight
+    xsec_pb: 0.06
+    sum_gen_weight: 1005658.4341803684
+
+  - name: ZZZ
+    inputs: ["${LEPSF_BASE}/reco/${LEPSF_MODE}/ZZZ*/*.root"]
+    weight_branch: SF_genWeight
+    xsec_pb: 0.02
+    sum_gen_weight: 258040.24531645895
+
+  - name: TTH_HtoNon2B
+    inputs: ["${LEPSF_BASE}/reco/${LEPSF_MODE}/TTH-HtoNon2B_Par-M-125*/*.root"]
+    weight_branch: SF_genWeight
+    xsec_pb: 0.238
+    sum_gen_weight: 30954616.589243002
+
+  - name: TWZ_2Q_LNu_2L
+    inputs: ["${LEPSF_BASE}/reco/${LEPSF_MODE}/TWZ-Tto2Q-WtoLNu-Zto2L-DR1*/*.root"]
+    weight_branch: SF_genWeight
+    xsec_pb: 0.003338
+    sum_gen_weight: 32621.5289545132
+
+  - name: TWZ_LNu_2Q_2L
+    inputs: ["${LEPSF_BASE}/reco/${LEPSF_MODE}/TWZ-TtoLNu-Wto2Q-Zto2L-DR1*/*.root"]
+    weight_branch: SF_genWeight
+    xsec_pb: 0.003338
+    sum_gen_weight: 32623.880822434199
+
+  - name: TWZ_LNu_LNu_2L
+    inputs: ["${LEPSF_BASE}/reco/${LEPSF_MODE}/TWZ-TtoLNu-WtoLNu-Zto2L-DR1*/*.root"]
+    weight_branch: SF_genWeight
+    xsec_pb: 0.001669
+    sum_gen_weight: 15378.2201428716

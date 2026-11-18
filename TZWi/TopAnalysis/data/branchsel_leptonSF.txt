@@ -1,0 +1,9 @@
+drop *
+keep run
+keep luminosityBlock
+keep event
+keep genWeight
+keep Pileup_nTrueInt
+keep HLT
+keep Flag
+keep SF_*

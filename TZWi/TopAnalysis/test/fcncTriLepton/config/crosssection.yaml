@@ -1,0 +1,63 @@
+crosssection:
+  TTLL_Bin-MLL-4to50:        0.03949
+  TTLL_Bin-MLL-50:           0.08646
+
+  TZQB-Zto2L-4FS_Bin-MLL-30: 0.07968
+
+  WWto2L2Nu: 80.23
+
+  WZto3LNu:   5.297
+  WZto2L2Q:   1.0
+
+  ZZto4L:     1.65
+  ZZto2L2Q:   0.449
+  ZZto2L2Nu:  1.175
+
+  WWW:        1.0
+  WWZ:        0.19
+  WZZ:        0.06
+  ZZZ:        0.02
+
+  TTH-HtoNon2B_Par-M-125: 0.238
+
+  TTto2L2Nu: 98.09630
+
+  TWZ-Tto2Q-WtoLNu-Zto2L-DR1:  0.003338
+  TWZ-TtoLNu-Wto2Q-Zto2L-DR1:  0.003338
+  TWZ-TtoLNu-WtoLNu-Zto2L-DR1: 0.001669
+
+  WGtoLNuG-1Jets:               671.5
+  DYGto2LG-1Jets_Bin-MLL-4to50:  88.13
+  DYGto2LG-1Jets_Bin-MLL-50:    126.7
+
+Entries:
+  TTLL_Bin-MLL-4to50:        1000000
+  TTLL_Bin-MLL-50:           1000000
+
+  TZQB-Zto2L-4FS_Bin-MLL-30: 1000000
+
+  WWto2L2Nu: 1000000
+
+  WZto3LNu:   1000000
+  WZto2L2Q:   1000000
+
+  ZZto4L:     1000000
+  ZZto2L2Q:   1000000
+  ZZto2L2Nu:  1000000
+
+  WWW:        1000000
+  WWZ:        1000000
+  WZZ:        1000000
+  ZZZ:        1000000
+
+  TTH-HtoNon2B_Par-M-125: 1000000
+
+  TTto2L2Nu: 1000000
+
+  TWZ-Tto2Q-WtoLNu-Zto2L-DR1:   1000000
+  TWZ-TtoLNu-Wto2Q-Zto2L-DR1:   1000000
+  TWZ-TtoLNu-WtoLNu-Zto2L-DR1:  1000000
+
+  WGtoLNuG-1Jets:               1000000
+  DYGto2LG-1Jets_Bin-MLL-4to50: 1000000
+  DYGto2LG-1Jets_Bin-MLL-50:    1000000
